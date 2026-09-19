@@ -1,0 +1,3405 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>长耳听见的那一年 · 微型视觉小说</title>
+<meta name="description" content="一个发生在南方大学校园里的、关于声音与告别的微型视觉小说。"/>
+<style>
+/* ===========================================================
+   长耳听见的那一年 —— UI（水彩纸感 / 藏青 × 暖金）
+   =========================================================== */
+:root{
+  --navy:#2b3a63; --navy-d:#16203a; --navy-l:#4a5c8c;
+  --gold:#e0b84c; --gold-d:#a8813a; --cream:#f7f1e2; --paper:#faf6ec;
+  --ink:#312c25; --ink-l:#6a6153; --red:#c0503c;
+  --ui-font:"Noto Serif SC","Source Han Serif SC","Songti SC","SimSun",serif;
+  --sans:"Yu Gothic UI","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0}
+body{
+  background:#171513; color:var(--ink); font-family:var(--ui-font);
+  overflow:hidden; user-select:none;
+}
+#app{position:fixed;inset:0;overflow:hidden}
+.screen{position:absolute;inset:0;display:none}
+.screen.active{display:block}
+.art{position:absolute;inset:0;overflow:hidden}
+.art>svg{width:100%;height:100%;display:block}
+.layer{position:absolute;inset:0;pointer-events:none}
+.layer>svg,.layer *{pointer-events:none!important}
+#cg-layer{cursor:default}
+
+/* ---------- 立绘 ---------- */
+#sprite-layer{display:flex;justify-content:center;align-items:flex-end;transition:opacity .5s}
+#sprite-layer .sprite{
+  height:96%; margin-bottom:0; transform:translateY(0);
+  transition:opacity .45s ease, transform .6s ease;
+  filter:drop-shadow(0 18px 26px rgba(30,24,16,.28));
+}
+#sprite-layer .sprite>svg{height:100%;width:auto;display:block}
+#sprite-layer.out .sprite{opacity:0;transform:translateY(14px)}
+#sprite-layer.half{opacity:.55}
+
+/* ---------- 文本框 ---------- */
+.dialogue{
+  position:absolute; left:4.5%; right:4.5%; bottom:3.2%; min-height:23%;
+  padding:26px 34px 30px; border-radius:14px 14px 10px 10px;
+  background:
+    linear-gradient(180deg, rgba(250,246,236,.975), rgba(243,236,220,.965));
+  box-shadow:0 12px 34px rgba(20,16,10,.42), inset 0 1px 0 rgba(255,255,255,.7);
+  border:1px solid rgba(120,100,70,.28);
+  backdrop-filter:blur(2px);
+}
+.dialogue::before{
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background-image:radial-gradient(rgba(120,100,70,.09) 1px, transparent 1px);
+  background-size:5px 5px; mix-blend-mode:multiply; opacity:.5;
+}
+.speaker{
+  position:absolute; top:-17px; left:30px; padding:2px 20px 3px;
+  background:linear-gradient(180deg,var(--navy-l),var(--navy));
+  color:#fdf8ea; font-size:19px; letter-spacing:.16em; border-radius:20px;
+  box-shadow:0 4px 12px rgba(20,20,40,.32), inset 0 1px 0 rgba(255,255,255,.25);
+}
+.speaker.empty{display:none}
+#speaker.narr{background:linear-gradient(180deg,#8a8172,#6a6153)}
+#speaker.heroine{background:linear-gradient(180deg,#e3c264,#b8902f);color:#2a2110}
+.text{font-size:26px; line-height:1.86; letter-spacing:.045em; min-height:3.7em; color:#2f2a22}
+.text .cursor{display:inline-block;width:.55em;color:var(--gold-d)}
+.next-mark{position:absolute;right:28px;bottom:16px;color:var(--gold-d);font-size:15px;opacity:0;animation:bob 1.1s infinite ease-in-out}
+.next-mark.on{opacity:.9}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(4px)}}
+
+/* ---------- 选项 ---------- */
+.choice-layer{position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px;background:rgba(18,16,12,.34);backdrop-filter:blur(1.5px)}
+.choice-layer.on{display:flex}
+.choice{
+  min-width:min(66vw,760px); padding:18px 30px; font-size:24px; font-family:var(--ui-font);
+  color:#2f2a22; letter-spacing:.06em; cursor:pointer; text-align:left;
+  background:linear-gradient(180deg,rgba(252,248,238,.97),rgba(238,230,212,.95));
+  border:1px solid rgba(120,100,70,.4); border-left:6px solid var(--gold);
+  border-radius:8px; box-shadow:0 8px 22px rgba(22,18,10,.35);
+  transition:transform .16s ease, box-shadow .16s ease, border-left-color .16s;
+}
+.choice:hover{transform:translateX(8px) scale(1.012); box-shadow:0 12px 28px rgba(22,18,10,.45); border-left-color:var(--navy-l)}
+.choice .tag{font-size:14px;color:var(--ink-l);display:block;letter-spacing:.1em;margin-bottom:4px}
+
+/* ---------- HUD ---------- */
+.hud{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;padding:12px 16px;pointer-events:none;font-family:var(--sans)}
+.hud-left,.hud-right{display:flex;gap:6px;align-items:center;pointer-events:auto}
+.tape-lamp{width:11px;height:11px;border-radius:50%;background:#7a3a2c;box-shadow:0 0 0 rgba(0,0,0,0);transition:all .3s}
+.tape-lamp.on{background:#e0503c;box-shadow:0 0 12px 3px rgba(224,80,60,.65);animation:pulse 1.4s infinite}
+@keyframes pulse{50%{opacity:.45}}
+.tape-txt{font-size:13px;color:#f7f1e2;letter-spacing:.14em;text-shadow:0 1px 3px rgba(0,0,0,.6);opacity:.85}
+.hbtn{
+  font-family:var(--sans);font-size:13px;letter-spacing:.1em;color:#f8f3e6;cursor:pointer;
+  padding:6px 12px;border-radius:16px;border:1px solid rgba(255,255,255,.28);
+  background:rgba(24,22,34,.5);transition:all .18s;
+}
+.hbtn:hover{background:rgba(43,58,99,.85);border-color:var(--gold)}
+.hbtn.active{background:var(--gold);color:#251d0c;border-color:var(--gold-d)}
+
+/* ---------- 章节卡 ---------- */
+.chapter-card{
+  position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:rgba(14,12,10,.72);opacity:0;transition:opacity .7s;pointer-events:none;text-align:center;
+}
+.chapter-card.on{opacity:1}
+.chapter-card .cc-k{font-size:18px;letter-spacing:.6em;color:var(--gold);margin-bottom:14px;font-family:var(--sans)}
+.chapter-card .cc-t{font-size:54px;color:#fbf6ea;letter-spacing:.14em;text-shadow:0 6px 24px rgba(0,0,0,.6)}
+.chapter-card .cc-s{font-size:17px;color:rgba(247,241,226,.72);margin-top:16px;letter-spacing:.2em}
+.chapter-card .cc-hint{margin-top:46px;font-size:13px;letter-spacing:.28em;color:rgba(224,184,76,.9);animation:blink 1.6s infinite ease-in-out}
+@keyframes blink{0%,100%{opacity:.35}50%{opacity:1}}
+.ending-card{
+  position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:rgba(10,10,14,.8);opacity:0;transition:opacity 1.1s;pointer-events:none;text-align:center;
+}
+.ending-card.on{opacity:1}
+.ending-card .e-k{font-size:17px;letter-spacing:.7em;color:var(--gold);font-family:var(--sans)}
+.ending-card .e-t{font-size:62px;color:#fdfaf0;margin:20px 0 10px;letter-spacing:.16em}
+.ending-card .e-s{font-size:19px;color:rgba(253,250,240,.8);letter-spacing:.18em;max-width:70vw;line-height:2}
+
+/* ---------- 标题画面 ---------- */
+#title-art{filter:saturate(.95)}
+.title-veil{position:absolute;inset:0;background:
+  radial-gradient(120% 80% at 20% 30%, rgba(255,248,226,.2), rgba(20,18,14,.55) 78%),
+  linear-gradient(0deg, rgba(14,12,10,.72), rgba(14,12,10,.15) 50%, rgba(14,12,10,.4));}
+.title-inner{position:absolute;left:9%;top:50%;transform:translateY(-50%);color:#fdf9ef;max-width:640px}
+.t-sub{font-size:15px;letter-spacing:.55em;color:var(--gold);font-family:var(--sans);margin-bottom:10px}
+.t-main{font-size:72px;margin:0 0 12px;letter-spacing:.1em;text-shadow:0 8px 30px rgba(0,0,0,.55)}
+.t-line{font-size:19px;letter-spacing:.16em;color:rgba(253,249,239,.86);margin-bottom:34px}
+.t-menu{display:flex;flex-direction:column;gap:11px;width:330px}
+.t-btn{
+  font-family:var(--ui-font);font-size:20px;letter-spacing:.14em;color:#f8f3e6;cursor:pointer;
+  padding:13px 22px;border-radius:6px;text-align:left;
+  border:1px solid rgba(255,255,255,.28);background:rgba(22,20,30,.46);
+  transition:all .2s;backdrop-filter:blur(3px);
+}
+.t-btn:hover{background:rgba(43,58,99,.9);border-color:var(--gold);transform:translateX(8px)}
+.t-btn.primary{background:linear-gradient(90deg,rgba(224,184,76,.92),rgba(184,144,47,.85));color:#2a2110;border-color:#f0d896}
+.t-btn.primary:hover{background:linear-gradient(90deg,#f0d896,#e0b84c)}
+.t-foot{margin-top:30px;font-size:13px;letter-spacing:.2em;color:rgba(253,249,239,.6);font-family:var(--sans)}
+
+/* ---------- 姓名 ---------- */
+#name-screen{background:radial-gradient(80% 60% at 50% 40%, #2c3a5e, #14171f 80%)}
+.name-card{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:min(560px,88vw);padding:40px 44px;border-radius:12px;text-align:center;
+  background:linear-gradient(180deg,#fdf8ec,#f0e8d4);box-shadow:0 20px 60px rgba(0,0,0,.55);
+  border:1px solid rgba(120,100,70,.35);
+}
+.name-card::after{content:"";position:absolute;left:24px;right:24px;top:96px;border-top:1px dashed rgba(120,100,70,.4)}
+.n-k{font-size:15px;letter-spacing:.5em;color:var(--gold-d);font-family:var(--sans)}
+.n-tip{font-size:15px;color:var(--ink-l);line-height:1.9;margin:16px 0 26px}
+#name-input{
+  width:100%;font-family:var(--ui-font);font-size:34px;text-align:center;letter-spacing:.2em;
+  padding:12px 8px;border:none;border-bottom:2px solid rgba(120,100,70,.45);
+  background:transparent;color:var(--ink);outline:none;
+}
+#name-input:focus{border-bottom-color:var(--gold-d)}
+.n-row{display:flex;gap:12px;margin-top:34px;justify-content:center}
+.n-row .t-btn{font-size:17px;text-align:center;width:auto;background:rgba(43,58,99,.92);color:#f8f3e6}
+
+/* ---------- 弹层 ---------- */
+.modal{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(12,10,8,.62);backdrop-filter:blur(3px);z-index:50}
+.modal.on{display:flex}
+.modal-box{
+  width:min(1000px,92vw);max-height:86vh;display:flex;flex-direction:column;border-radius:12px;overflow:hidden;
+  background:linear-gradient(180deg,#fbf6ea,#f1e9d6);box-shadow:0 24px 70px rgba(0,0,0,.6);border:1px solid rgba(120,100,70,.4);
+}
+.modal-head{
+  display:flex;justify-content:space-between;align-items:center;padding:14px 22px;
+  background:linear-gradient(180deg,var(--navy-l),var(--navy));color:#fdf8ea;
+  font-size:20px;letter-spacing:.24em;
+}
+.modal-head .cls{cursor:pointer;font-size:15px;font-family:var(--sans);letter-spacing:.1em;padding:4px 12px;border:1px solid rgba(255,255,255,.35);border-radius:14px;background:transparent;color:#fdf8ea}
+.modal-head .cls:hover{background:rgba(255,255,255,.16)}
+.modal-body{padding:18px 22px;overflow:auto}
+.m-row{display:flex;gap:14px;flex-wrap:wrap}
+.m-card{
+  width:230px;border:1px solid rgba(120,100,70,.35);border-radius:8px;overflow:hidden;background:#fffdf6;
+  cursor:pointer;transition:transform .16s, box-shadow .16s;
+}
+.m-card:hover{transform:translateY(-4px);box-shadow:0 12px 26px rgba(30,24,14,.28)}
+.m-card .thumb{height:130px;overflow:hidden;background:#e8dfc8;position:relative}
+.m-card .thumb>svg{width:100%;height:100%;display:block}
+.m-card .thumb.locked>svg{filter:grayscale(1) blur(9px) brightness(1.02);opacity:.5}
+.m-card .cap{padding:9px 12px;font-size:15px;letter-spacing:.06em}
+.m-card .cap small{display:block;color:var(--ink-l);font-size:12px;margin-top:3px;letter-spacing:.08em}
+.m-card.locked{filter:grayscale(.5)}
+.m-track{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:13px 16px;margin-bottom:9px;border-radius:8px;background:#fffdf6;border:1px solid rgba(120,100,70,.28);cursor:pointer}
+.m-track:hover{background:#f6efdd;border-color:var(--gold)}
+.m-track .tt{font-size:19px;letter-spacing:.1em}
+.m-track .td{font-size:13px;color:var(--ink-l);margin-top:3px;letter-spacing:.06em}
+.m-track .tp{font-family:var(--sans);font-size:13px;color:var(--gold-d)}
+.m-track.playing{border-color:var(--gold);background:#fbf3dd}
+.m-track .eq{display:inline-block;width:9px;text-align:center}
+.hist{padding:6px 2px}
+.hist .hi{padding:9px 12px;border-bottom:1px dashed rgba(120,100,70,.25);font-size:17px;line-height:1.8}
+.hist .hi b{color:var(--navy);letter-spacing:.12em;margin-right:10px;font-weight:600}
+.hist .hi.hz b{color:var(--gold-d)}
+.hist .hi.nr{color:var(--ink-l);font-style:italic}
+.slot{display:flex;justify-content:space-between;align-items:center;padding:13px 16px;margin-bottom:9px;border-radius:8px;background:#fffdf6;border:1px solid rgba(120,100,70,.28)}
+.slot .si{font-size:15px;color:var(--ink-l)}
+.slot .sn{font-size:17px}
+.slot button{font-family:var(--sans);font-size:13px;padding:6px 14px;margin-left:8px;border-radius:14px;border:1px solid rgba(120,100,70,.45);background:#f6efdd;cursor:pointer;color:var(--ink)}
+.slot button:hover{background:var(--gold);border-color:var(--gold-d)}
+.set-row{display:flex;align-items:center;gap:16px;padding:12px 4px;font-size:17px}
+.set-row label{width:130px;letter-spacing:.14em}
+.set-row input[type=range]{flex:1;accent-color:var(--gold-d)}
+.set-row .val{width:60px;text-align:right;font-family:var(--sans);color:var(--ink-l)}
+.help p{font-size:16px;line-height:2;margin:8px 0;color:#3a342a}
+.help h4{margin:20px 0 6px;color:var(--navy);letter-spacing:.16em}
+.toast{
+  position:absolute;left:50%;bottom:14%;transform:translateX(-50%) translateY(10px);
+  padding:10px 26px;border-radius:22px;background:rgba(24,20,34,.88);color:#f8f3e6;
+  font-size:15px;letter-spacing:.14em;opacity:0;transition:all .3s;pointer-events:none;z-index:60;font-family:var(--sans);
+}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* 淡入淡出 */
+#fx-vig{background:radial-gradient(120% 90% at 50% 45%, rgba(0,0,0,0), rgba(20,14,6,.42) 100%)}
+.fadeout{opacity:0;transition:opacity .5s}
+@media (max-width:900px){
+  .t-main{font-size:46px} .text{font-size:21px} .dialogue{min-height:27%}
+  .choice{font-size:19px;min-width:86vw} .modal-body{padding:12px}
+}
+
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- 标题画面 -->
+  <section id="title-screen" class="screen active">
+    <div id="title-art" class="art"></div>
+    <div class="title-veil"></div>
+    <div class="title-inner">
+      <div class="t-sub">微型视觉小说</div>
+      <h1 class="t-main">长耳听见的那一年</h1>
+      <div class="t-line">——把最后一盘磁带，交给下一个秋天</div>
+      <div class="t-menu">
+        <button data-act="start" class="t-btn primary">开始新的一期</button>
+        <button data-act="continue" class="t-btn">继续收听</button>
+        <button data-act="gallery" class="t-btn">CG 鉴赏</button>
+        <button data-act="music" class="t-btn">音乐鉴赏</button>
+        <button data-act="help" class="t-btn">关于 / 操作</button>
+      </div>
+      <div class="t-foot">全年龄 · 纯爱 · 单线 · 约 20–30 分钟</div>
+    </div>
+  </section>
+
+  <!-- 姓名输入 -->
+  <section id="name-screen" class="screen">
+    <div class="name-card">
+      <div class="n-k">借书卡 · 姓名栏</div>
+      <p class="n-tip">名字会被写在卡片上，也会被念进最后一期节目里。</p>
+      <input id="name-input" maxlength="8" placeholder="江知远" autocomplete="off"/>
+      <div class="n-row">
+        <button id="name-ok" class="t-btn primary">就写这个</button>
+        <button id="name-default" class="t-btn">用默认名「江知远」</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 游戏画面 -->
+  <section id="game-screen" class="screen">
+    <div id="bg-layer" class="layer art"></div>
+    <div id="sprite-layer" class="layer"></div>
+    <div id="cg-layer" class="layer"></div>
+    <div id="fx-vig" class="layer"></div>
+    <div id="chapter-card" class="chapter-card"></div>
+    <div id="hud" class="hud">
+      <div class="hud-left">
+        <span id="tape-lamp" class="tape-lamp"></span>
+        <span id="tape-txt" class="tape-txt">REC 00:00</span>
+      </div>
+      <div class="hud-right">
+        <button class="hbtn" data-act="log" title="历史回顾">回顾</button>
+        <button class="hbtn" data-act="auto" title="自动播放">自动</button>
+        <button class="hbtn" data-act="skip" title="跳过">跳过</button>
+        <button class="hbtn" data-act="save" title="存档">存档</button>
+        <button class="hbtn" data-act="load" title="读档">读档</button>
+        <button class="hbtn" data-act="config" title="设置">设置</button>
+        <button id="hud-title" class="hbtn" data-act="title" title="回到标题">标题</button>
+      </div>
+    </div>
+    <div id="dialogue" class="dialogue">
+      <div id="speaker" class="speaker"></div>
+      <div id="text" class="text"></div>
+      <div id="nextmark" class="next-mark">▼</div>
+    </div>
+    <div id="choice-layer" class="choice-layer"></div>
+    <div id="ending-card" class="ending-card"></div>
+  </section>
+
+  <!-- 弹层 -->
+  <div id="modal" class="modal"><div id="modal-box" class="modal-box"><div id="modal-head" class="modal-head"></div><div id="modal-body" class="modal-body"></div></div></div>
+  <div id="toast" class="toast"></div>
+</div>
+<script>
+/* ===========================================================
+ *  svg.js —— 水彩渲染底层库
+ *  生成真正的 SVG（湿边 / 纸纹 / 晕染 / 颗粒），全部离线程序化绘制
+ * =========================================================== */
+var ART = (function () {
+
+  // ---------- 随机 ----------
+  function mulberry32(a) {
+    return function () {
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      var t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  function makeRnd(seed) {
+    var r = mulberry32(seed >>> 0);
+    return {
+      n: r,
+      rng: function (a, b) { return a + (b - a) * r(); },
+      int: function (a, b) { return Math.floor(a + (b - a + 1) * r()); },
+      pick: function (arr) { return arr[Math.floor(r() * arr.length) % arr.length]; },
+      sign: function () { return r() < 0.5 ? -1 : 1; }
+    };
+  }
+  function hashStr(s) { var h = 2166136261; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+
+  // ---------- 数值 ----------
+  function round2(v) { return Math.round(v * 100) / 100; }
+  function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function mixHex(h1, h2, t) {
+    function p(h) { h = h.replace('#', ''); if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2]; return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)]; }
+    var a = p(h1), b = p(h2);
+    function hex(v) { v = Math.round(clamp(v, 0, 255)).toString(16); return v.length === 1 ? '0' + v : v; }
+    return '#' + hex(lerp(a[0], b[0], t)) + hex(lerp(a[1], b[1], t)) + hex(lerp(a[2], b[2], t));
+  }
+  function shade(hex, t) { // t>0 变亮，t<0 变深
+    return t >= 0 ? mixHex(hex, '#ffffff', t) : mixHex(hex, '#1a1712', -t);
+  }
+  function alpha(hex, a) {
+    var m = /^#?([0-9a-f]{6})$/i.exec(hex); if (!m) return hex;
+    return 'rgba(' + parseInt(m[1].slice(0, 2), 16) + ',' + parseInt(m[1].slice(2, 4), 16) + ',' + parseInt(m[1].slice(4, 6), 16) + ',' + round2(a) + ')';
+  }
+
+  // ---------- 路径 ----------
+  function pt(x, y) { return [x, y]; }
+  function polyPath(pts, close) {
+    var d = 'M' + round2(pts[0][0]) + ' ' + round2(pts[0][1]);
+    for (var i = 1; i < pts.length; i++) d += 'L' + round2(pts[i][0]) + ' ' + round2(pts[i][1]);
+    return d + (close !== false ? 'Z' : '');
+  }
+  function smoothPath(pts, close) {
+    if (pts.length < 3) return polyPath(pts, close);
+    var d = 'M' + round2(pts[0][0]) + ',' + round2(pts[0][1]);
+    for (var i = 0; i < pts.length - 1; i++) {
+      var p0 = pts[i === 0 ? 0 : i - 1], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2 >= pts.length ? pts.length - 1 : i + 2];
+      var c1x = p1[0] + (p2[0] - p0[0]) / 6, c1y = p1[1] + (p2[1] - p0[1]) / 6;
+      var c2x = p2[0] - (p3[0] - p1[0]) / 6, c2y = p2[1] - (p3[1] - p1[1]) / 6;
+      d += 'C' + round2(c1x) + ',' + round2(c1y) + ' ' + round2(c2x) + ',' + round2(c2y) + ' ' + round2(p2[0]) + ',' + round2(p2[1]);
+    }
+    return close === false ? d : d + 'Z';
+  }
+  function circlePath(cx, cy, r) { return 'M' + round2(cx - r) + ',' + round2(cy) + 'a' + round2(r) + ',' + round2(r) + ' 0 1 0 ' + round2(2 * r) + ',0a' + round2(r) + ',' + round2(r) + ' 0 1 0 ' + round2(-2 * r) + ',0Z'; }
+  function ellipsePath(cx, cy, rx, ry) { return 'M' + round2(cx - rx) + ',' + round2(cy) + 'a' + round2(rx) + ',' + round2(ry) + ' 0 1 0 ' + round2(2 * rx) + ',0a' + round2(rx) + ',' + round2(ry) + ' 0 1 0 ' + round2(-2 * rx) + ',0Z'; }
+
+  // 不规则墨团（手绘感）
+  function blobPath(cx, cy, rx, ry, rnd, wobble) {
+    var n = rnd.int(9, 13), pts = [], i;
+    wobble = wobble === undefined ? 0.11 : wobble;
+    for (i = 0; i < n; i++) {
+      var a = i / n * Math.PI * 2;
+      var k = 1 + Math.sin(a * 3 + rnd.n() * 6) * wobble * 0.6 + (rnd.n() - 0.5) * wobble;
+      pts.push([cx + Math.cos(a) * rx * k, cy + Math.sin(a) * ry * k]);
+    }
+    return smoothPath(pts, true);
+  }
+  // 手绘直线（微微抖）
+  function skPath(x1, y1, x2, y2, rnd, wob) {
+    wob = wob === undefined ? 2.2 : wob;
+    var dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy);
+    var n = Math.max(2, Math.min(14, Math.round(len / 70)));
+    var nx = -dy / (len || 1), ny = dx / (len || 1), pts = [];
+    for (var i = 0; i <= n; i++) {
+      var t = i / n, off = (rnd.n() - 0.5) * wob * (i === 0 || i === n ? 0.35 : 1);
+      pts.push([x1 + dx * t + nx * off, y1 + dy * t + ny * off]);
+    }
+    return smoothPath(pts, false);
+  }
+
+  // ---------- 图层 ----------
+  function Layer() { this.parts = []; }
+  Layer.prototype.p = function (s) { this.parts.push(s); return this; };
+  Layer.prototype.path = function (d, o) {
+    o = o || {};
+    this.parts.push('<path d="' + d + '" fill="' + (o.fill || 'none') + '"' +
+      (o.stroke ? ' stroke="' + o.stroke + '" stroke-width="' + (o.sw || 1.4) + '"' : '') +
+      (o.lc ? ' stroke-linecap="' + o.lc + '"' : '') + (o.lj ? ' stroke-linejoin="' + o.lj + '"' : '') +
+      (o.op !== undefined ? ' opacity="' + o.op + '"' : '') +
+      (o.dash ? ' stroke-dasharray="' + o.dash + '"' : '') +
+      (o.fo ? ' fill-rule="' + o.fo + '"' : '') + '/>');
+    return this;
+  };
+  Layer.prototype.rect = function (x, y, w, h, o) {
+    o = o || {}; var d = 'M' + round2(x) + ',' + round2(y) + 'h' + round2(w) + 'v' + round2(h) + 'h' + round2(-w) + 'Z';
+    return this.path(d, o);
+  };
+  Layer.prototype.ellipse = function (cx, cy, rx, ry, o) { return this.path(ellipsePath(cx, cy, rx, ry), o || {}); };
+  Layer.prototype.circle = function (cx, cy, r, o) { return this.path(circlePath(cx, cy, r), o || {}); };
+  Layer.prototype.blob = function (cx, cy, rx, ry, rnd, o) {
+    o = o || {}; return this.path(blobPath(cx, cy, rx, ry, rnd, o.wobble), o);
+  };
+  Layer.prototype.sk = function (x1, y1, x2, y2, rnd, o) {
+    o = o || {}; return this.path(skPath(x1, y1, x2, y2, rnd, o.wob), o);
+  };
+  Layer.prototype.text = function (x, y, s, o) {
+    o = o || {};
+    return this.p('<text x="' + round2(x) + '" y="' + round2(y) + '" font-size="' + (o.size || 24) + '" font-family="' +
+      (o.family || "'Noto Serif SC','Songti SC','SimSun',serif") + '" fill="' + (o.fill || '#3a3730') + '"' +
+      (o.sw ? ' stroke="' + o.sw + '" stroke-width="' + (o.sww || 0.6) + '"' : '') +
+      (o.anchor ? ' text-anchor="' + o.anchor + '"' : '') +
+      (o.op !== undefined ? ' opacity="' + o.op + '"' : '') +
+      (o.ls ? ' letter-spacing="' + o.ls + '"' : '') + '>' + esc(s) + '</text>');
+  };
+  Layer.prototype.raw = function (s) { this.parts.push(s); return this; };
+  Layer.prototype.g = function (attrs, inner) {
+    this.parts.push('<g ' + attrs + '>' + inner + '</g>'); return this;
+  };
+  Layer.prototype.markup = function () { return this.parts.join(''); };
+
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+  // 水彩块：湿边 + 晕染 + 内部渐变
+  function wetBlob(d, c1, c2, seed, opt) {
+    opt = opt || {};
+    var w = opt.w === undefined ? 7 : opt.w;          // 湿边宽度
+    var f = opt.f === undefined ? 0.22 : opt.f;        // 晕染扩散
+    var soft = opt.soft === undefined ? 0.4 : opt.soft;
+    var iid = 'w' + (seed >>> 0).toString(36);
+    return '<g>' +
+      '<path d="' + d + '" fill="url(#grad-' + iid + ')" opacity="' + (opt.op === undefined ? 1 : opt.op) + '"/>' +
+      '<path d="' + d + '" fill="none" stroke="' + alpha(c2, 0.5) + '" stroke-width="' + (w * 0.5) + '" opacity=".42" filter="url(#soft-' + (seed % 9) + ')"/>' +
+      '<path d="' + d + '" fill="none" stroke="' + alpha(shade(c2, -0.25), 0.5) + '" stroke-width="' + (w * 0.22) + '" opacity=".3"/>' +
+      '<path d="' + d + '" fill="' + alpha(c1, 0.1) + '" filter="url(#fuzz)"/>' +
+      '</g>' +
+      '<defs><radialGradient id="grad-' + iid + '" cx="38%" cy="30%" r="78%">' +
+      '<stop offset="0%" stop-color="' + alpha(shade(c1, 0.12), 0.72) + '"/>' +
+      '<stop offset="62%" stop-color="' + alpha(c1, 0.6 * (1 - soft * 0.35)) + '"/>' +
+      '<stop offset="100%" stop-color="' + alpha(c2, 0.66) + '"/>' +
+      '</radialGradient></defs>';
+  }
+
+  // ---------- 纸张与滤镜 ----------
+  function paperDefs(w, h, seed) {
+    var r = makeRnd(seed);
+    return '<filter id="paper" x="-2%" y="-2%" width="104%" height="104%">' +
+      '<feTurbulence type="fractalNoise" baseFrequency="' + (0.9 + r.n() * 0.2).toFixed(3) + '" numOctaves="4" seed="' + (seed % 900) + '" result="n"/>' +
+      '<feColorMatrix in="n" type="saturate" values="0" result="g"/>' +
+      '<feComponentTransfer in="g"><feFuncA type="linear" slope="0.13" intercept="0"/></feComponentTransfer>' +
+      '</filter>' +
+      '<filter id="grain">' +
+      '<feTurbulence type="fractalNoise" baseFrequency="0.62" numOctaves="3" seed="' + ((seed + 7) % 900) + '" result="t"/>' +
+      '<feColorMatrix in="t" type="saturate" values="0" result="tg"/>' +
+      '<feComponentTransfer in="tg"><feFuncA type="linear" slope="0.055" intercept="0"/></feComponentTransfer>' +
+      '</filter>' +
+      '<filter id="fuzz" x="-25%" y="-25%" width="150%" height="150%"><feGaussianBlur stdDeviation="' + (w * 0.008).toFixed(1) + '"/></filter>' +
+      '<filter id="soft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="6"/></filter>' +
+      '<filter id="soft2" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="14"/></filter>' +
+      '<filter id="soft3" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="26"/></filter>' +
+      '<filter id="soft4" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="40"/></filter>';
+  }
+  function paperOverlay(w, h) {
+    return '<rect x="0" y="0" width="' + w + '" height="' + h + '" fill="#f7f2e6" filter="url(#paper)" opacity="0.85" style="mix-blend-mode:multiply"/>' +
+      '<rect x="0" y="0" width="' + w + '" height="' + h + '" fill="#fffdf7" filter="url(#grain)" opacity="0.5"/>';
+  }
+
+  // ---------- 场景（world）----------
+  function Scene(seed) {
+    this.w = 1600; this.h = 900; this.seed = seed >>> 0;
+    this.rnd = makeRnd(this.seed);
+    this.defs = []; this.layers = []; this.cur = null;
+  }
+  Scene.prototype.layer = function () { this.cur = new Layer(); this.layers.push(this.cur); return this.cur; };
+  Scene.prototype.top = function () { return this.layers.length ? this.layers[this.layers.length - 1] : null; };
+  Scene.prototype.pushDef = function (s) { this.defs.push(s); return this; };
+  // 天空/大背景渐变
+  Scene.prototype.sky = function (c1, c2, opt) {
+    opt = opt || {};
+    var id = 'sky' + (this.seed % 9999) + this.defs.length;
+    this.pushDef('<linearGradient id="' + id + '" x1="0" y1="0" x2="' + (opt.dx === undefined ? 0 : opt.dx) + '" y2="' + (opt.dy === undefined ? 1 : opt.dy) + '">' +
+      '<stop offset="0%" stop-color="' + c1 + '"/><stop offset="' + (opt.mid === undefined ? 55 : opt.mid) + '%" stop-color="' + (opt.cm || mixHex(c1, c2, 0.5)) + '"/><stop offset="100%" stop-color="' + c2 + '"/></linearGradient>');
+    var l = this.layer();
+    l.rect(0, 0, this.w, this.h, { fill: 'url(#' + id + ')' });
+    // 水彩天空的云絮
+    var r = this.rnd;
+    for (var i = 0; i < (opt.clouds === undefined ? 7 : opt.clouds); i++) {
+      var cx = r.rng(0, this.w), cy = r.rng(0, this.h * 0.62), rx = r.rng(120, 420), ry = r.rng(26, 90);
+      var col = mixHex(c1, opt.cloudColor || '#ffffff', 0.6);
+      l.raw(wetBlob(blobPath(cx, cy, rx, ry, r, 0.18), col, mixHex(col, '#dfe3ea', 0.5), (this.seed + i * 31) >>> 0, { w: 3, f: 0.5, op: r.rng(0.1, 0.26) }));
+    }
+    return l;
+  };
+  // 竖直渐晕
+  Scene.prototype.vignette = function (color, op) {
+    var l = this.layer();
+    var id = 'vig' + (this.seed % 9999) + this.defs.length;
+    this.pushDef('<radialGradient id="' + id + '" cx="50%" cy="46%" r="72%"><stop offset="55%" stop-color="' + alpha(color || '#000000', 0) + '"/><stop offset="100%" stop-color="' + alpha(color || '#000000', op === undefined ? 0.3 : op) + '"/></radialGradient>');
+    l.rect(0, 0, this.w, this.h, { fill: 'url(#' + id + ')' });
+    return l;
+  };
+  Scene.prototype.done = function (opt) {
+    opt = opt || {};
+    var s = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + this.w + ' ' + this.h + '" width="' + this.w + '" height="' + this.h + '" preserveAspectRatio="xMidYMid slice">';
+    s += '<defs>' + paperDefs(this.w, this.h, this.seed) + this.defs.join('') + '</defs>';
+    s += this.layers.map(function (l) { return l.markup(); }).join('');
+    if (opt.paper !== false) s += paperOverlay(this.w, this.h);
+    s += '</svg>';
+    return s;
+  };
+
+  return {
+    makeRnd: makeRnd, hashStr: hashStr, Scene: Scene, Layer: Layer,
+    mixHex: mixHex, shade: shade, alpha: alpha, lerp: lerp, clamp: clamp, round2: round2, paperOverlay: paperOverlay,
+    polyPath: polyPath, smoothPath: smoothPath, ellipsePath: ellipsePath, circlePath: circlePath,
+    blobPath: blobPath, skPath: skPath, wetBlob: wetBlob, esc: esc, pt: pt
+  };
+})();
+
+
+var ARTWORK = (function () {
+  var A = ART;
+  var R = A.makeRnd, S = A.shade, M = A.mixHex, AL = A.alpha;
+
+  var PAL = {
+    navy: '#2b3a63', navyD: '#1d2742', navyL: '#4a5c8c',
+    gold: '#e0b84c', goldD: '#b9882c', cream: '#f6efdd', paper: '#faf6ec',
+    ink: '#2e2b26', skin: '#f2d9c6', skinS: '#e0b79c',
+    hair: '#2c2622', hairL: '#544a43',
+    wood: '#a97f52', woodD: '#6f5132', leaf: '#7d9a5f', leafD: '#4d6a3c',
+    sky: '#bcd4e6', skyD: '#8fb0cc', dusk: '#e9c9a8', snow: '#eef3f7',
+    stone: '#b9b6ae', stoneD: '#8d8a83', teal: '#5f8f8a', plum: '#8a5a63'
+  };
+
+  /* ---------- 通用小物件 ---------- */
+  function leafSpray(l, x, y, len, ang, rnd, col, op) {
+    var n = 5 + Math.floor(rnd.n() * 4);
+    for (var i = 0; i < n; i++) {
+      var a = ang + (i / n) * 1.5 - 0.75 + rnd.rng(-0.2, 0.2);
+      var L = len * rnd.rng(0.6, 1.15);
+      var ex = x + Math.cos(a) * L, ey = y + Math.sin(a) * L;
+      l.path(A.skPath(x, y, ex, ey, rnd, 1.4), { stroke: S(col, -0.2), sw: 1.6, op: op === undefined ? .8 : op, lc: 'round' });
+      l.raw(A.wetBlob(A.blobPath((x + ex) / 2, (y + ey) / 2, L * 0.42, L * 0.2, rnd, 0.3), col, S(col, -0.25), (rnd.int(1, 1e6)) >>> 0, { w: 3, f: 0.4, op: (op === undefined ? .5 : op * .55) }));
+    }
+  }
+
+  function bigTree(l, x, groundY, rnd, opt) {
+    opt = opt || {};
+    var trunkW = opt.w || 78, col = opt.col || PAL.woodD;
+    var topY = opt.topY || 40;
+    // 树干：多边形 + 分叉
+    var ptsL = [], ptsR = [];
+    var seg = 9;
+    for (var i = 0; i <= seg; i++) {
+      var t = i / seg, y = A.lerp(groundY, topY, t);
+      var w = trunkW * (1 - t * 0.55) * (1 + Math.sin(t * 5 + 1) * 0.08) + rnd.rng(-4, 4);
+      var bend = Math.sin(t * 2.2) * (opt.bend || 14);
+      ptsL.push([x - w / 2 + bend, y]); ptsR.push([x + w / 2 + bend, y]);
+    }
+    var d = A.polyPath(ptsL.concat(ptsR.reverse()), true);
+    l.raw(A.wetBlob(d, S(col, 0.06), col, (rnd.int(1, 1e6)) >>> 0, { w: 6, f: 0.25 }));
+    // 树皮竖纹
+    for (var k = 0; k < 16; k++) {
+      var tt = rnd.n(); var yy1 = A.lerp(groundY, topY, tt), yy2 = yy1 - rnd.rng(30, 130);
+      var xx = x + rnd.rng(-trunkW * 0.42, trunkW * 0.42) + Math.sin(tt * 2.2) * (opt.bend || 14);
+      l.path(A.skPath(xx, yy1, xx + rnd.rng(-6, 6), yy2, rnd, 2.4), { stroke: AL(S(col, -0.4), rnd.rng(.12, .3)), sw: rnd.rng(1.1, 3), lc: 'round' });
+    }
+    // 枝
+    for (var b = 0; b < 4; b++) {
+      var by = A.lerp(groundY, topY, rnd.rng(0.25, 0.92));
+      var bx = x + Math.sin((groundY - by) / (groundY - topY) * 2.2) * (opt.bend || 14);
+      var dir = rnd.sign(), bl = rnd.rng(120, 240);
+      var ex = bx + dir * bl, ey = by - rnd.rng(30, 120);
+      l.path(A.skPath(bx, by, ex, ey, rnd, 3), { stroke: col, sw: rnd.rng(6, 12), op: .75, lc: 'round' });
+    }
+    // 树冠
+    if (opt.crown !== false) {
+      for (var c = 0; c < 14; c++) {
+        var cx = x + rnd.rng(-260, 260), cy = topY + rnd.rng(-40, 190);
+        var cc = M(PAL.leaf, rnd.n() < .5 ? '#b9c98f' : '#5d7a44', rnd.n() * .6);
+        l.raw(A.wetBlob(A.blobPath(cx, cy, rnd.rng(90, 190), rnd.rng(50, 105), rnd, .3), cc, S(cc, -0.2), (rnd.int(1, 1e6)) >>> 0, { w: 4, f: 0.5, op: rnd.rng(.2, .45) }));
+      }
+    }
+    return l;
+  }
+
+  function stoneWall(l, x, y, w, h, rnd, col) {
+    col = col || PAL.stone;
+    l.raw(A.wetBlob(A.polyPath([[x, y], [x + w, y], [x + w, y + h], [x, y + h]]), S(col, .18), col, (rnd.int(1, 1e6)) >>> 0, { w: 5, f: 0.2, op: .95 }));
+    // 石缝
+    var rows = Math.max(2, Math.round(h / 90));
+    for (var i = 1; i < rows; i++) {
+      var yy = y + h * i / rows;
+      l.path(A.skPath(x, yy, x + w, yy, rnd, 2), { stroke: AL(S(col, -0.45), .3), sw: 1.6 });
+      for (var j = 0; j < 5; j++) {
+        var xx = x + w * (j + .5) / 5 + rnd.rng(-30, 30);
+        l.path(A.skPath(xx, yy, xx, yy + h / rows, rnd, 2), { stroke: AL(S(col, -0.45), .22), sw: 1.4 });
+      }
+    }
+    // 斑驳
+    for (var k = 0; k < 12; k++) {
+      var px = rnd.rng(x, x + w), py = rnd.rng(y, y + h);
+      l.raw(A.wetBlob(A.blobPath(px, py, rnd.rng(20, 70), rnd.rng(12, 40), rnd, .35), S(col, .3), col, (rnd.int(1, 1e6)) >>> 0, { w: 3, f: .5, op: rnd.rng(.08, .2) }));
+    }
+    return l;
+  }
+
+  function desk(l, x, y, w, h, rnd, col) {
+    col = col || PAL.wood;
+    var top = 16;
+    l.raw(A.wetBlob(A.polyPath([[x, y], [x + w, y], [x + w, y + top], [x, y + top]]), S(col, .22), col, (rnd.int(1, 1e6)) >>> 0, { w: 4, f: .15 }));
+    l.raw(A.wetBlob(A.polyPath([[x + 22, y + top], [x + w - 22, y + top], [x + w - 46, y + h], [x + 46, y + h]]), S(col, -0.18), S(col, -0.3), (rnd.int(1, 1e6)) >>> 0, { w: 4, f: .3, op: .9 }));
+    return l;
+  }
+
+  function windowFrame(l, x, y, w, h, rnd, opt) {
+    opt = opt || {};
+    var g = opt.glow || '#fdf0cd';
+    l.raw(A.wetBlob(A.polyPath([[x, y], [x + w, y], [x + w, y + h], [x, y + h]]), '#fdf3d8', '#e8d9ae', (rnd.int(1, 1e6)) >>> 0, { w: 6, f: .3, op: .75 }));
+    var mull = opt.mull === undefined ? 3 : opt.mull;
+    for (var i = 1; i < mull; i++) l.path(A.skPath(x + w * i / mull, y, x + w * i / mull, y + h, rnd, 1.6), { stroke: AL('#6b5a3e', .5), sw: 2.4 });
+    l.path(A.skPath(x, y + h * .5, x + w, y + h * .5, rnd, 1.6), { stroke: AL('#6b5a3e', .4), sw: 2.2 });
+    l.path(A.skPath(x, y, x + w, y, rnd, 1.2), { stroke: AL('#6b5a3e', .6), sw: 3 });
+    // 光斑
+    for (var k = 0; k < 5; k++) {
+      l.raw(A.wetBlob(A.blobPath(x + rnd.rng(0, w), y + rnd.rng(0, h), rnd.rng(50, 170), rnd.rng(30, 90), rnd, .4), g, S(g, -0.1), (rnd.int(1, 1e6)) >>> 0, { w: 3, f: .6, op: rnd.rng(.1, .28) }));
+    }
+    return l;
+  }
+
+  function lightShaft(l, x, y, w, h, rnd, col, op) {
+    col = col || '#fff3cf';
+    l.raw(A.wetBlob(A.polyPath([[x, y], [x + w, y], [x + w * 1.5, y + h], [x - w * .3, y + h]]),
+      col, S(col, -0.06), (rnd.int(1, 1e6)) >>> 0, { w: 3, f: .65, op: op === undefined ? .3 : op }));
+    return l;
+  }
+
+  /* =========================================================
+   *  场景
+   * ========================================================= */
+  var SCENES = {};
+
+  // 图书馆四楼 靠窗
+  SCENES.lib = function (st) {
+    var r = st.rnd;
+    st.sky('#f0e2c4', '#cbb894', { dx: .1, dy: 1, clouds: 8, cloudColor: '#fff6e0' });
+    var l = st.layer();
+    // 远处书架
+    for (var b = 0; b < 4; b++) {
+      var bx = 60 + b * 300, by = 150, bw = 250, bh = 560;
+      l.raw(A.wetBlob(A.polyPath([[bx, by], [bx + bw, by], [bx + bw, by + bh], [bx, by + bh]]), '#9c7a52', '#6d5236', (100 + b) >>> 0, { w: 6, f: .2, op: .8 }));
+      for (var s = 0; s < 5; s++) {
+        var sy = by + 30 + s * 106;
+        l.path(A.skPath(bx + 8, sy, bx + bw - 8, sy, r, 2), { stroke: AL('#4b3620', .4), sw: 3 });
+        for (var k = 0; k < 12; k++) {
+          var bkw = r.rng(9, 18), bkh = r.rng(44, 78), bkx = bx + 14 + k * (bw - 28) / 12;
+          var bc = r.pick(['#8d4d42', '#4c6178', '#7a6a3f', '#5d5a4e', '#8a6f52', '#3f5a52']);
+          l.raw(A.wetBlob(A.polyPath([[bkx, sy - bkh], [bkx + bkw, sy - bkh], [bkx + bkw, sy], [bkx, sy]]), S(bc, .16), bc, (r.int(1, 1e6)) >>> 0, { w: 3, f: .25, op: r.rng(.5, .8) }));
+        }
+      }
+    }
+    // 靠窗一侧：大窗
+    var win = st.layer();
+    windowFrame(win, 1020, 120, 520, 620, r, { mull: 3, glow: '#ffeec2' });
+    // 窗外的树影
+    for (var i = 0; i < 7; i++) {
+      var cx = r.rng(1040, 1520), cy = r.rng(180, 640);
+      win.raw(A.wetBlob(A.blobPath(cx, cy, r.rng(60, 150), r.rng(40, 110), r, .35), M(PAL.leaf, '#cfd8b0', .4), '#6f8850', (r.int(1, 1e6)) >>> 0, { w: 4, f: .5, op: r.rng(.12, .3) }));
+    }
+    // 地面
+    var fl = st.layer();
+    fl.raw(A.wetBlob(A.polyPath([[0, 700], [1600, 700], [1600, 900], [0, 900]]), '#c9a97a', '#9c7e56', 7, { w: 6, f: .25, op: .85 }));
+    for (var j = 0; j < 9; j++) fl.path(A.skPath(0, 706 + j * 22, 1600, 700 + j * 24, r, 2), { stroke: AL('#6d5433', .16), sw: 1.4 });
+    // 逆光光柱
+    lightShaft(st.layer(), 1100, 130, 150, 640, r, '#fff2c9', .3);
+    lightShaft(st.layer(), 1330, 140, 90, 620, r, '#ffeec2', .2);
+    // 阅览桌与椅子
+    var tb = st.layer();
+    desk(tb, 150, 560, 620, 150, r);
+    desk(tb, 830, 640, 480, 130, r);
+    for (var c = 0; c < 3; c++) {
+      var cxp = 230 + c * 200;
+      tb.path(A.skPath(cxp, 720, cxp + 90, 720, r, 2), { stroke: '#6f5132', sw: 7, lc: 'round' });
+      tb.path(A.skPath(cxp + 40, 720, cxp + 30, 800, r, 2), { stroke: '#6f5132', sw: 6, lc: 'round' });
+      tb.path(A.skPath(cxp + 40, 720, cxp + 60, 800, r, 2), { stroke: '#6f5132', sw: 6, lc: 'round' });
+      tb.path(A.skPath(cxp + 82, 700, cxp + 82, 600, r, 2), { stroke: '#6f5132', sw: 7, lc: 'round' });
+    }
+    // 桌上：台灯、钢笔、卡纸
+    tb.raw(A.wetBlob(A.blobPath(250, 520, 46, 20, r, .2), '#3f6b52', '#254636', 21, { w: 4, f: .3 }));
+    tb.path(A.skPath(240, 520, 262, 470, r, 2), { stroke: '#2f3f33', sw: 5, lc: 'round' });
+    tb.raw(A.wetBlob(A.blobPath(268, 464, 30, 16, r, .2), '#7fa06a', '#3f6b52', 22, { w: 3, f: .4, op: .8 }));
+    tb.raw(A.wetBlob(A.blobPath(520, 545, 90, 26, r, .18), '#fdf8ea', '#e4d8bc', 23, { w: 3, f: .25, op: .95 }));
+    // 前排模糊桌（景深）
+    var fz = st.layer();
+    fz.raw('<g filter="url(#soft2)">' + new A.Layer().raw(A.wetBlob(A.polyPath([[0, 830], [520, 800], [560, 900], [0, 900]]), '#7b6141', '#57432c', 31, { w: 5, f: .3, op: .55 })).markup() + '</g>');
+    // 浮尘
+    var du = st.layer();
+    for (var d2 = 0; d2 < 40; d2++) du.circle(r.rng(0, 1600), r.rng(80, 760), r.rng(1, 3.2), { fill: AL('#fff8e0', r.rng(.2, .7)) });
+    st.vignette('#5b4a2e', .22);
+    return st;
+  };
+
+  // 图书馆 · 空座位（CG 用，斜光特写）
+  SCENES.libSeat = function (st) {
+    var r = st.rnd;
+    st.sky('#f6e7c6', '#b99f78', { dx: .2, dy: 1, clouds: 6, cloudColor: '#fff8e6' });
+    lightShaft(st.layer(), 760, 60, 260, 760, r, '#fff4cf', .38);
+    lightShaft(st.layer(), 1090, 80, 140, 740, r, '#ffedbb', .26);
+    var bk = st.layer();
+    stoneWall(bk, 0, 380, 700, 520, r, '#a98f66');
+    var tb = st.layer();
+    desk(tb, 300, 540, 1000, 200, r);
+    // 摊开的书 + 借书卡
+    var bk2 = st.layer();
+    bk2.raw(A.wetBlob(A.polyPath([[520, 500], [700, 486], [706, 546], [524, 560]]), '#fdf9ec', '#e3d7ba', 41, { w: 4, f: .2, op: .95 }));
+    bk2.raw(A.wetBlob(A.polyPath([[700, 486], [880, 500], [876, 562], [706, 546]]), '#fbf6e6', '#ddd0b0', 42, { w: 4, f: .2, op: .95 }));
+    bk2.path(A.skPath(702, 486, 704, 548, r, 1.5), { stroke: AL('#a89madd', .0) });
+    bk2.path(A.skPath(702, 486, 704, 548, r, 1.5), { stroke: '#c9bda0', sw: 3 });
+    // 借书卡
+    bk2.raw(A.wetBlob(A.polyPath([[742, 508], [856, 500], [862, 528], [748, 536]]), '#fefcf3', '#e8ddc4', 43, { w: 3, f: .12, op: .98 }));
+    for (var i = 0; i < 5; i++) bk2.path(A.skPath(752, 512 + i * 5, 852, 508 + i * 5, r, 1.2), { stroke: AL('#8a7c5e', .35), sw: 1.2 });
+    // 铅笔
+    bk2.raw(A.wetBlob(A.polyPath([[600, 596], [736, 576], [742, 592], [606, 612]]), '#e9b45c', '#b8802c', 44, { w: 3, f: .15 }));
+    bk2.path(A.skPath(742, 588, 766, 583, r, 1), { stroke: '#c8a06a', sw: 5, lc: 'round' });
+    // 眼镜布 + 校徽
+    bk2.raw(A.wetBlob(A.blobPath(960, 566, 46, 30, r, .22), '#cfe0e8', '#8fa9b6', 45, { w: 4, f: .35, op: .9 }));
+    bk2.raw(A.wetBlob(A.blobPath(1052, 580, 17, 6, r, .1), S(PAL.gold, -.15), PAL.goldD, 46, { w: 3, f: .2 }));
+    // 空椅子
+    var ch = st.layer();
+    ch.path(A.skPath(1080, 700, 1220, 690, r, 2), { stroke: '#6f5132', sw: 9, lc: 'round' });
+    ch.path(A.skPath(1100, 700, 1086, 810, r, 2), { stroke: '#6f5132', sw: 8, lc: 'round' });
+    ch.path(A.skPath(1200, 694, 1216, 806, r, 2), { stroke: '#6f5132', sw: 8, lc: 'round' });
+    ch.path(A.skPath(1150, 690, 1152, 540, r, 2), { stroke: '#6f5132', sw: 9, lc: 'round' });
+    ch.path(A.skPath(1152, 560, 1230, 556, r, 2), { stroke: '#6f5132', sw: 7, lc: 'round' });
+    var du = st.layer();
+    for (var d = 0; d < 46; d++) du.circle(r.rng(200, 1500), r.rng(100, 800), r.rng(1, 3.4), { fill: AL('#fffbe8', r.rng(.25, .8)) });
+    st.vignette('#6b5636', .26);
+    return st;
+  };
+
+  // 广播台 · 播音室
+  SCENES.studio = function (st) {
+    var r = st.rnd;
+    st.sky('#6d6f74', '#4a4b50', { dx: 0, dy: 1, clouds: 4, cloudColor: '#9aa0a6' });
+    var w = st.layer();
+    // 吸音棉墙
+    w.raw(A.wetBlob(A.polyPath([[0, 0], [1600, 0], [1600, 700], [0, 700]]), '#5c5548', '#3f3a32', 55, { w: 8, f: .2, op: .95 }));
+    for (var i = 0; i < 16; i++) {
+      for (var j = 0; j < 6; j++) {
+        var x = 20 + i * 100, y = 20 + j * 96;
+        var c = ((i + j) % 2 === 0) ? '#6b6252' : '#544c3e';
+        w.raw(A.wetBlob(A.polyPath([[x, y], [x + 88, y], [x + 88, y + 84], [x, y + 84]]), S(c, .12), c, (i * 17 + j) >>> 0, { w: 3, f: .2, op: .5 }));
+      }
+    }
+    // 隔音窗（望向录音间）
+    var g = st.layer();
+    windowFrame(g, 960, 120, 560, 420, r, { mull: 2, glow: '#cdd6d8' });
+    for (var k = 0; k < 24; k++) g.circle(r.rng(970, 1510), r.rng(130, 530), r.rng(6, 26), { fill: AL('#e8eef0', r.rng(.04, .16)) });
+    // 调音台
+    var m = st.layer();
+    desk(m, 60, 560, 900, 190, r, '#4a4136');
+    m.raw(A.wetBlob(A.polyPath([[90, 470], [880, 450], [900, 570], [80, 590]]), '#585048', '#332e28', 61, { w: 6, f: .18 }));
+    for (var ch = 0; ch < 10; ch++) {
+      var cx = 130 + ch * 78;
+      m.path(A.skPath(cx, 480, cx, 500, r, 1.2), { stroke: AL('#e8e2d2', .5), sw: 3 });
+      m.circle(cx, 512, 7, { fill: AL('#d8d2c2', .8) });
+      m.rect(cx - 5, 524, 10, 40, { fill: AL('#2b2722', .8) });
+      // 电平灯
+      m.circle(cx, 462, 4.5, { fill: ch < 6 ? AL('#8fd48a', .85) : AL('#d8b06a', .7) });
+    }
+    // 磁带机
+    var tp = st.layer();
+    tp.raw(A.wetBlob(A.polyPath([[980, 560], [1400, 546], [1416, 700], [972, 714]]), '#4e4a44', '#2f2c28', 71, { w: 6, f: .18 }));
+    tp.circle(1080, 630, 34, { fill: AL('#d9d2c2', .35), stroke: AL('#eee8d8', .5), sw: 3 });
+    tp.circle(1220, 626, 34, { fill: AL('#d9d2c2', .35), stroke: AL('#eee8d8', .5), sw: 3 });
+    tp.rect(1300, 600, 70, 40, { fill: AL('#1f1d1a', .6) });
+    tp.rect(1300, 650, 70, 20, { fill: AL('#8a6a3a', .5) });
+    // 磁带盒子
+    var bx = st.layer();
+    for (var b = 0; b < 9; b++) {
+      var bxx = 60 + b * 62, byy = 760 + (b % 2) * 8;
+      bx.raw(A.wetBlob(A.polyPath([[bxx, byy], [bxx + 52, byy], [bxx + 52, byy + 74], [bxx, byy + 74]]), '#8d7f68', '#5e5342', (b + 3) >>> 0, { w: 3, f: .2, op: .85 }));
+      bx.rect(bxx + 8, byy + 14, 36, 22, { fill: AL('#efe7d2', .5) });
+    }
+    // 墙上合影
+    var f = st.layer();
+    f.raw(A.wetBlob(A.polyPath([[1180, 250], [1420, 244], [1424, 390], [1184, 396]]), '#d9cdb4', '#9d8f76', 81, { w: 4, f: .2, op: .9 }));
+    for (var p = 0; p < 9; p++) {
+      var px = 1204 + (p % 5) * 46, py = 300 + Math.floor(p / 5) * 62;
+      f.raw(A.wetBlob(A.blobPath(px, py, 16, 22, r, .3), '#7a6f5e', '#4a4237', (p + 9) >>> 0, { w: 2, f: .3, op: .7 }));
+    }
+    st.layer().rect(0, 0, 1600, 900, { fill: M('#c9bda4', '#ffffff', .5), op: .14 });
+    st.vignette('#241f19', .34);
+    return st;
+  };
+
+  // 广播台 · 修复特写（磁带 / 棉签 / 磁头）
+  SCENES.repair = function (st) {
+    var r = st.rnd;
+    st.sky('#4f4a42', '#2c2925', { clouds: 3, cloudColor: '#6d655a' });
+    var t = st.layer();
+    t.raw(A.wetBlob(A.polyPath([[0, 420], [1600, 400], [1600, 900], [0, 900]]), '#6b5f4c', '#3b342b', 91, { w: 8, f: .2, op: .95 }));
+    lightShaft(st.layer(), 700, 60, 260, 700, r, '#ffeec2', .22);
+    // 打开的磁带
+    var c = st.layer();
+    c.raw(A.wetBlob(A.polyPath([[420, 380], [1180, 360], [1200, 700], [400, 720]]), '#5a5346', '#322d26', 93, { w: 7, f: .18 }));
+    c.raw(A.wetBlob(A.polyPath([[470, 410], [1130, 392], [1146, 668], [452, 686]]), '#c9c0aa', '#8d846e', 94, { w: 5, f: .2, op: .8 }));
+    // 两个磁带轮
+    [620, 980].forEach(function (cx, idx) {
+      c.circle(cx, 530, 86, { fill: AL('#e6dfcd', .35), stroke: AL('#f2ecd8', .55), sw: 4 });
+      c.circle(cx, 530, 52, { fill: AL('#3a352d', .55) });
+      for (var k = 0; k < 6; k++) {
+        var a = k / 6 * Math.PI * 2;
+        c.rect(cx + Math.cos(a) * 30 - 6, 530 + Math.sin(a) * 30 - 6, 12, 12, { fill: AL('#e6dfcd', .5) });
+      }
+      c.circle(cx, 530, 10, { fill: AL('#7a6f5c', .9) });
+      // 磁带卷
+      c.circle(cx, 530, 78 - idx * 8, { fill: 'none', stroke: AL('#5f5340', .55), sw: 26 });
+    });
+    // 断带
+    var br = st.layer();
+    for (var i = 0; i < 30; i++) {
+      var px = 780 + i * 14 + Math.sin(i * .7) * 10, py = 640 + Math.sin(i * .4) * 26;
+      br.circle(px, py, 4.4, { fill: AL('#3d2f22', .85) });
+    }
+    br.raw(A.wetBlob(A.blobPath(1180, 600, 60, 30, r, .4), '#6b3a2c', '#3d2018', 97, { w: 4, f: .5, op: .5 }));
+    // 铅笔 / 棉签
+    var tool = st.layer();
+    tool.raw(A.wetBlob(A.polyPath([[1150, 760], [1480, 690], [1492, 726], [1162, 796]]), '#e9b45c', '#a9782a', 98, { w: 4, f: .15 }));
+    tool.raw(A.wetBlob(A.polyPath([[120, 700], [420, 760], [412, 796], [112, 736]]), '#f2ece0', '#b8b0a0', 99, { w: 4, f: .2 }));
+    tool.raw(A.wetBlob(A.circlePath(430, 782, 26), '#ffffff', '#ddd6c8', 100, { w: 3, f: .3 }));
+    st.layer().rect(0, 0, 1600, 900, { fill: M('#c9bda4', '#ffffff', .55), op: .16 });
+    st.vignette('#181512', .4);
+    return st;
+  };
+
+  // 校道 · 梧桐
+  SCENES.road = function (st) {
+    var r = st.rnd;
+    st.sky('#cfe0ea', '#eee0c2', { dx: .3, dy: 1, clouds: 9, cloudColor: '#fffdf4' });
+    var l = st.layer();
+    for (var i = 0; i < 6; i++) {
+      var tx = 90 + i * 300 + r.rng(-40, 40);
+      bigTree(l, tx, 700, r, { w: 70, bend: r.rng(-18, 18), topY: 120 + r.rng(-40, 40), crown: i < 3 });
+    }
+    // 教学楼侧影
+    var bd = st.layer();
+    bd.raw(A.wetBlob(A.polyPath([[1080, 180], [1600, 150], [1600, 700], [1080, 700]]), '#cfc6b4', '#93897a', 111, { w: 6, f: .18, op: .85 }));
+    for (var w = 0; w < 4; w++) for (var h = 0; h < 5; h++) {
+      bd.raw(A.wetBlob(A.polyPath([[1120 + w * 118, 240 + h * 88], [1198 + w * 118, 240 + h * 88], [1198 + w * 118, 300 + h * 88], [1120 + w * 118, 300 + h * 88]]), '#8fa5b4', '#5f7484', (w * 7 + h) >>> 0, { w: 3, f: .25, op: r.rng(.4, .75) }));
+    }
+    // 地面 + 路缘
+    var g = st.layer();
+    g.raw(A.wetBlob(A.polyPath([[0, 690], [1600, 690], [1600, 900], [0, 900]]), '#cbb894', '#9a8663', 112, { w: 7, f: .22, op: .9 }));
+    g.raw(A.wetBlob(A.polyPath([[0, 760], [1600, 740], [1600, 900], [0, 900]]), '#b6a888', '#8a7d60', 113, { w: 6, f: .2, op: .7 }));
+    for (var k = 0; k < 24; k++) {
+      var px = r.rng(0, 1600), py = r.rng(700, 890);
+      g.raw(A.wetBlob(A.blobPath(px, py, r.rng(14, 42), r.rng(5, 14), r, .4), M(PAL.gold, PAL.leaf, r.n()), '#9a7a3c', (k + 5) >>> 0, { w: 2, f: .4, op: r.rng(.2, .5) }));
+    }
+    // 布告栏
+    var nb = st.layer();
+    nb.raw(A.wetBlob(A.polyPath([[120, 470], [430, 462], [436, 640], [126, 648]]), '#6d5a3e', '#443522', 121, { w: 5, f: .2 }));
+    for (var p = 0; p < 6; p++) {
+      var px2 = 142 + (p % 3) * 96, py2 = 492 + Math.floor(p / 3) * 76;
+      nb.raw(A.wetBlob(A.polyPath([[px2, py2], [px2 + 80, py2], [px2 + 80, py2 + 60], [px2, py2 + 60]]), '#fbf5e4', '#ded2b6', (p + 30) >>> 0, { w: 3, f: .2, op: r.rng(.75, .95) }));
+    }
+    st.vignette('#5a5030', .2);
+    return st;
+  };
+
+  // 食堂三楼
+  SCENES.canteen = function (st) {
+    var r = st.rnd;
+    st.sky('#f4e9d2', '#d8c9a8', { dx: .2, dy: 1, clouds: 6, cloudColor: '#fffaf0' });
+    var l = st.layer();
+    // 瓷砖墙
+    for (var i = 0; i < 10; i++) for (var j = 0; j < 5; j++) {
+      var c = (i + j) % 2 ? '#e6dcc4' : '#dcd0b4';
+      l.raw(A.wetBlob(A.polyPath([[i * 160, 60 + j * 120], [i * 160 + 156, 60 + j * 120], [i * 160 + 156, 60 + j * 120 + 116], [i * 160, 60 + j * 120 + 116]]), S(c, .08), c, (i * 11 + j) >>> 0, { w: 2, f: .15, op: .5 }));
+    }
+    // 大窗与午后的光
+    windowFrame(st.layer(), 900, 100, 620, 460, r, { mull: 3, glow: '#fff3cd' });
+    lightShaft(st.layer(), 980, 110, 200, 600, r, '#fff0c0', .32);
+    // 窗口价目牌
+    var pr = st.layer();
+    pr.raw(A.wetBlob(A.polyPath([[80, 120], [560, 110], [566, 300], [86, 310]]), '#3f4a52', '#232b31', 131, { w: 5, f: .18 }));
+    for (var k = 0; k < 5; k++) pr.path(A.skPath(110, 164 + k * 30, 520, 158 + k * 30, r, 1.6), { stroke: AL('#f0e8d4', .5), sw: 4, lc: 'round' });
+    pr.raw(A.wetBlob(A.polyPath([[80, 330], [420, 322], [424, 420], [84, 428]]), '#8d4d42', '#5a2c25', 132, { w: 4, f: .2, op: .8 }));
+    // 地板
+    var fl = st.layer();
+    fl.raw(A.wetBlob(A.polyPath([[0, 620], [1600, 620], [1600, 900], [0, 900]]), '#cbbfa2', '#98896b', 133, { w: 6, f: .2, op: .9 }));
+    // 餐盘 + 面碗（你慢慢说 CG 的实景版）
+    var tb = st.layer();
+    desk(tb, 300, 560, 700, 170, r, '#b08a5c');
+    tb.raw(A.wetBlob(A.ellipsePath(560, 592, 96, 30), '#fdf8ea', '#cfc2a4', 141, { w: 4, f: .18 }));
+    tb.raw(A.wetBlob(A.ellipsePath(560, 588, 78, 22), '#e8c98e', '#b98a4a', 142, { w: 4, f: .3, op: .9 }));
+    // 热气
+    var st2 = st.layer();
+    for (var s = 0; s < 5; s++) st2.raw(A.wetBlob(A.blobPath(540 + r.rng(-20, 40), 540 - s * 30, r.rng(16, 30), r.rng(10, 20), r, .4), '#ffffff', '#e6e0d0', (s + 60) >>> 0, { w: 3, f: .7, op: .18 }));
+    tb.raw(A.wetBlob(A.ellipsePath(790, 600, 66, 22), '#efe9d8', '#c2b89e', 143, { w: 3, f: .18 }));
+    // 餐盘（斜前方）
+    var pl = st.layer();
+    pl.raw(A.wetBlob(A.ellipsePath(1120, 660, 130, 40), '#f6f1e0', '#c9bfa4', 145, { w: 4, f: .2, op: .7 }));
+    pl.raw(A.wetBlob(A.ellipsePath(1090, 656, 42, 16), '#c8a05c', '#8a6a34', 146, { w: 3, f: .3, op: .7 }));
+    pl.raw(A.wetBlob(A.ellipsePath(1160, 660, 46, 17), '#8fae6a', '#5c7a42', 147, { w: 3, f: .3, op: .7 }));
+    st.vignette('#5f5232', .18);
+    return st;
+  };
+
+  // 操场 / 看台（黄昏）
+  SCENES.field = function (st) {
+    var r = st.rnd;
+    st.sky('#f6d9a8', '#7f9ec2', { dx: 0, dy: -1, clouds: 12, cloudColor: '#fff0d0' });
+    var sun = st.layer();
+    sun.raw(A.wetBlob(A.blobPath(1180, 300, 130, 110, r, .16), '#ffe9a8', '#f2b45c', 151, { w: 6, f: .7, op: .55 }));
+    // 跑道
+    var f = st.layer();
+    f.raw(A.wetBlob(A.polyPath([[0, 520], [1600, 500], [1600, 900], [0, 900]]), '#b9694f', '#7d4433', 152, { w: 7, f: .22, op: .9 }));
+    for (var i = 0; i < 6; i++) {
+      f.path(A.skPath(0, 540 + i * 60, 1600, 520 + i * 60, r, 3), { stroke: AL('#f4e6cc', .5), sw: 3.4 });
+    }
+    f.raw(A.wetBlob(A.polyPath([[620, 620], [1600, 580], [1600, 900], [560, 900]]), '#7fa060', '#4d6c3e', 153, { w: 6, f: .25, op: .8 }));
+    // 看台
+    var g = st.layer();
+    for (var k = 0; k < 6; k++) {
+      var y = 420 - k * 52, c = k % 2 ? '#c9bfa8' : '#b5ab95';
+      g.raw(A.wetBlob(A.polyPath([[0, y], [520, y - 14], [520, y + 30], [0, y + 44]]), S(c, .1), c, (k + 7) >>> 0, { w: 4, f: .15, op: .85 }));
+    }
+    // 看台上稀疏的人影
+    for (var p = 0; p < 6; p++) {
+      var px = 80 + p * 78 + r.rng(-20, 20), py = 410 - Math.floor(r.n() * 4) * 52;
+      g.raw(A.wetBlob(A.blobPath(px, py - 26, 11, 26, r, .3), '#4b4a45', '#2c2b28', (p + 20) >>> 0, { w: 3, f: .35, op: .5 }));
+      g.circle(px, py - 58, 9, { fill: AL('#3e3d38', .55) });
+    }
+    // 远处灯杆
+    var lp = st.layer();
+    [300, 900, 1400].forEach(function (x, idx) {
+      lp.path(A.skPath(x, 520, x, 200, r, 2), { stroke: AL('#4a4a46', .7), sw: 6, lc: 'round' });
+      lp.raw(A.wetBlob(A.blobPath(x + 40, 200, 60, 14, r, .2), '#4a4a46', '#2f2f2c', (idx + 90) >>> 0, { w: 3, f: .2, op: .8 }));
+      lp.raw(A.wetBlob(A.blobPath(x + 70, 214, 40, 22, r, .3), '#ffeeb4', '#e0b84c', (idx + 91) >>> 0, { w: 3, f: .6, op: .4 }));
+    });
+    st.vignette('#6b4c2a', .26);
+    return st;
+  };
+
+  // 湖边（黄昏 → 夜）
+  SCENES.lake = function (st) {
+    var r = st.rnd;
+    st.sky('#f3d3a8', '#69809e', { dx: 0, dy: -1, clouds: 10, cloudColor: '#ffeccd' });
+    var l = st.layer();
+    l.raw(A.wetBlob(A.blobPath(1240, 260, 120, 96, r, .14), '#fff0b8', '#eaa84f', 161, { w: 6, f: .75, op: .5 }));
+    // 对岸树线
+    var t = st.layer();
+    for (var i = 0; i < 16; i++) {
+      var cx = i * 108 + r.rng(-30, 30);
+      t.raw(A.wetBlob(A.blobPath(cx, 470, r.rng(60, 110), r.rng(40, 70), r, .3), M('#6f8a5a', '#3f5a48', r.n()), '#33452f', (i + 40) >>> 0, { w: 4, f: .5, op: r.rng(.35, .6) }));
+    }
+    // 湖面
+    var w = st.layer();
+    w.raw(A.wetBlob(A.polyPath([[0, 500], [1600, 500], [1600, 900], [0, 900]]), '#9db6c9', '#4f6f8c', 162, { w: 8, f: .22, op: .92 }));
+    for (var k = 0; k < 26; k++) {
+      var y = 510 + k * 15, x = r.rng(0, 1400), len = r.rng(80, 340);
+      w.path(A.skPath(x, y, x + len, y + r.rng(-3, 3), r, 2), { stroke: AL(k % 3 === 0 ? '#f6dfae' : '#e6eef4', r.rng(.2, .55)), sw: r.rng(2, 5) });
+    }
+    // 阳光倒影
+    w.raw(A.wetBlob(A.polyPath([[1150, 500], [1340, 500], [1420, 900], [1080, 900]]), '#ffe9b0', '#dba85a', 163, { w: 4, f: .7, op: .35 }));
+    // 木栈道
+    var d = st.layer();
+    d.raw(A.wetBlob(A.polyPath([[0, 660], [700, 640], [720, 760], [0, 790]]), '#9a7a52', '#5f4a30', 164, { w: 6, f: .2, op: .95 }));
+    for (var b = 0; b < 12; b++) d.path(A.skPath(-20 + b * 62, 648 + b * 1.2, -20 + b * 62, 786, r, 2), { stroke: AL('#3f3020', .3), sw: 2.4 });
+    // 栏杆
+    var rl = st.layer();
+    rl.path(A.skPath(0, 600, 720, 586, r, 2), { stroke: AL('#6b5636', .8), sw: 6 });
+    for (var q = 0; q < 8; q++) rl.path(A.skPath(10 + q * 96, 600, 10 + q * 96, 660, r, 2), { stroke: AL('#6b5636', .7), sw: 5 });
+    st.vignette('#4a3f2e', .3);
+    return st;
+  };
+
+  // 天台（初雪 / 铅灰）
+  SCENES.roof = function (st) {
+    var r = st.rnd;
+    st.sky('#cfd8e0', '#9aa8b6', { clouds: 14, cloudColor: '#f4f7fa' });
+    var c = st.layer();
+    for (var i = 0; i < 18; i++) {
+      var cx = r.rng(0, 1600), cy = r.rng(40, 400), sc = r.rng(90, 300);
+      c.raw(A.wetBlob(A.blobPath(cx, cy, sc, sc * r.rng(.2, .4), r, .3), '#ffffff', '#c3ceda', (i + 50) >>> 0, { w: 4, f: .6, op: r.rng(.14, .4) }));
+    }
+    // 远处城市 / 校园轮廓
+    var sky2 = st.layer();
+    for (var b = 0; b < 22; b++) {
+      var bw = r.rng(50, 130), bh = r.rng(60, 210), bx = b * 78 - 20;
+      sky2.raw(A.wetBlob(A.polyPath([[bx, 560 - bh], [bx + bw, 560 - bh], [bx + bw, 560], [bx, 560]]), '#8794a4', '#5f6b7a', (b + 80) >>> 0, { w: 3, f: .2, op: r.rng(.2, .45) }));
+    }
+    // 天台地面
+    var g = st.layer();
+    g.raw(A.wetBlob(A.polyPath([[0, 560], [1600, 552], [1600, 900], [0, 900]]), '#b4b9bd', '#7d838a', 171, { w: 8, f: .2, op: .95 }));
+    for (var k = 0; k < 10; k++) g.path(A.skPath(0, 580 + k * 32, 1600, 574 + k * 32, r, 3), { stroke: AL('#5f666d', .18), sw: 2 });
+    // 女儿墙
+    var wl = st.layer();
+    wl.raw(A.wetBlob(A.polyPath([[0, 500], [1600, 492], [1600, 560], [0, 570]]), '#c8ccd0', '#93999f', 172, { w: 5, f: .18, op: .95 }));
+    // 水塔 / 通风管
+    var t = st.layer();
+    t.raw(A.wetBlob(A.polyPath([[1200, 300], [1420, 296], [1424, 500], [1196, 504]]), '#a9adb2', '#6f757b', 173, { w: 5, f: .2, op: .85 }));
+    t.raw(A.wetBlob(A.ellipsePath(1310, 296, 112, 26), '#c2c6ca', '#83898f', 174, { w: 4, f: .2 }));
+    t.raw(A.wetBlob(A.polyPath([[200, 460], [340, 456], [344, 552], [196, 556]]), '#9aa0a6', '#666c72', 175, { w: 4, f: .2, op: .8 }));
+    // 雪
+    var sn = st.layer();
+    for (var s = 0; s < 150; s++) sn.circle(r.rng(0, 1600), r.rng(0, 900), r.rng(1.4, 4.6), { fill: AL('#ffffff', r.rng(.35, .95)) });
+    // 雪光
+    lightShaft(st.layer(), 500, 0, 260, 900, r, '#ffffff', .16);
+    st.vignette('#4f5860', .28);
+    return st;
+  };
+
+  // 小礼堂
+  SCENES.hall = function (st) {
+    var r = st.rnd;
+    st.sky('#3d342c', '#241e19', { clouds: 4, cloudColor: '#6b5a48' });
+    var l = st.layer();
+    // 木墙
+    l.raw(A.wetBlob(A.polyPath([[0, 0], [1600, 0], [1600, 900], [0, 900]]), '#6b4f34', '#3a291c', 181, { w: 8, f: .2, op: .95 }));
+    for (var i = 0; i < 22; i++) l.path(A.skPath(i * 76, 0, i * 76 + r.rng(-6, 6), 900, r, 3), { stroke: AL('#2a1d12', .25), sw: 3 });
+    // 红丝绒幕
+    var cu = st.layer();
+    cu.raw(A.wetBlob(A.polyPath([[0, 0], [300, 0], [260, 620], [0, 660]]), '#7d2f36', '#4a1a1f', 182, { w: 7, f: .25, op: .95 }));
+    cu.raw(A.wetBlob(A.polyPath([[1600, 0], [1300, 0], [1340, 620], [1600, 660]]), '#7d2f36', '#4a1a1f', 183, { w: 7, f: .25, op: .95 }));
+    for (var k = 0; k < 7; k++) {
+      cu.path(A.skPath(30 + k * 34, 0, 40 + k * 30, 620, r, 3), { stroke: AL('#3d1418', .3), sw: 6 });
+      cu.path(A.skPath(1580 - k * 34, 0, 1570 - k * 30, 620, r, 3), { stroke: AL('#3d1418', .3), sw: 6 });
+    }
+    // 舞台
+    var s = st.layer();
+    s.raw(A.wetBlob(A.polyPath([[240, 560], [1360, 560], [1440, 720], [160, 720]]), '#7a5a38', '#3f2e1c', 184, { w: 6, f: .18, op: .95 }));
+    // 讲台 / 麦克风
+    var m = st.layer();
+    m.path(A.skPath(700, 560, 700, 400, r, 1.6), { stroke: AL('#b8b2a4', .6), sw: 4, lc: 'round' });
+    m.raw(A.wetBlob(A.blobPath(700, 384, 16, 24, r, .2), '#c9c3b4', '#6f6a5e', 185, { w: 4, f: .3, op: .9 }));
+    m.raw(A.wetBlob(A.polyPath([[560, 560], [860, 556], [856, 620], [564, 624]]), '#8d6a42', '#4a3520', 186, { w: 4, f: .18, op: .9 }));
+    // 录音机红灯
+    var rc = st.layer();
+    rc.raw(A.wetBlob(A.polyPath([[880, 520], [1010, 516], [1014, 570], [884, 574]]), '#4a453e', '#2a2622', 187, { w: 4, f: .18 }));
+    rc.circle(898, 534, 5, { fill: AL('#e0503c', .95) });
+    rc.raw(A.wetBlob(A.blobPath(898, 534, 26, 26, r, .3), '#e0503c', '#8a2418', 188, { w: 3, f: .8, op: .35 }));
+    // 观众席
+    var a = st.layer();
+    for (var rw = 0; rw < 4; rw++) {
+      var y = 720 + rw * 46;
+      a.raw(A.wetBlob(A.polyPath([[0, y], [1600, y - 6], [1600, y + 46], [0, y + 52]]), '#5f4a34', '#33261a', (rw + 30) >>> 0, { w: 5, f: .2, op: .8 }));
+      for (var p = 0; p < 14; p++) {
+        var px = 40 + p * 112 + r.rng(-26, 26);
+        a.raw(A.wetBlob(A.blobPath(px, y - 40, 22 + rw * 3, 34 + rw * 3, r, .3), '#3f3630', '#221c18', (rw * 20 + p) >>> 0, { w: 3, f: .4, op: r.rng(.3, .6) }));
+        a.circle(px, y - 78 - rw * 4, 12 + rw * 2, { fill: AL('#2c2622', .6) });
+      }
+    }
+    // 顶灯
+    var lg = st.layer();
+    for (var q = 0; q < 4; q++) {
+      var lx = 400 + q * 280;
+      lg.raw(A.wetBlob(A.blobPath(lx, 90, 90, 40, r, .25), '#ffeec2', '#e0b84c', (q + 60) >>> 0, { w: 4, f: .7, op: .35 }));
+      lg.path(A.skPath(lx, 130, lx, 210, r, 2), { stroke: AL('#ffeec2', .3), sw: 8 });
+    }
+    lightShaft(st.layer(), 620, 120, 180, 460, r, '#ffeec2', .22);
+    st.layer().rect(0, 0, 1600, 900, { fill: M('#c9bda4', '#ffffff', .5), op: .12 });
+    st.vignette('#000000', .38);
+    return st;
+  };
+
+  // 宿舍夜景（灯泡下）
+  SCENES.dorm = function (st) {
+    var r = st.rnd;
+    st.sky('#3a3730', '#25231f', { clouds: 3, cloudColor: '#5a554c' });
+    var w = st.layer();
+    w.raw(A.wetBlob(A.polyPath([[0, 0], [1600, 0], [1600, 780], [0, 780]]), '#4a443a', '#2c2823', 191, { w: 7, f: .2, op: .9 }));
+    // 台灯光锥
+    lightShaft(w, 560, 220, 300, 620, r, '#ffe2a8', .34);
+    // 桌面
+    var d = st.layer();
+    d.raw(A.wetBlob(A.polyPath([[0, 620], [1600, 610], [1600, 900], [0, 900]]), '#8a6a44', '#4a3722', 192, { w: 7, f: .2, op: .95 }));
+    // 台灯
+    var lp = st.layer();
+    lp.raw(A.wetBlob(A.blobPath(560, 560, 60, 22, r, .2), '#3f6b52', '#22402f', 193, { w: 4, f: .3 }));
+    lp.path(A.skPath(548, 560, 578, 460, r, 2), { stroke: '#28402f', sw: 6, lc: 'round' });
+    lp.raw(A.wetBlob(A.blobPath(592, 448, 44, 26, r, .22), '#ffe9b0', '#cf9a3c', 194, { w: 4, f: .5, op: .8 }));
+    // 磁带盒 / 笔记本 / 听力报告
+    var bx = st.layer();
+    bx.raw(A.wetBlob(A.polyPath([[240, 560], [420, 552], [426, 640], [246, 648]]), '#8d7f68', '#5e5342', 195, { w: 4, f: .2 }));
+    bx.rect(258, 574, 144, 34, { fill: AL('#efe7d2', .55) });
+    bx.raw(A.wetBlob(A.polyPath([[700, 570], [960, 560], [966, 660], [706, 670]]), '#fbf5e4', '#ded2b6', 196, { w: 4, f: .18, op: .95 }));
+    for (var i = 0; i < 6; i++) bx.path(A.skPath(720, 590 + i * 12, 946, 584 + i * 12, r, 1.6), { stroke: AL('#8a7c5e', .4), sw: 1.6 });
+    // 医院报告单（一角）
+    bx.raw(A.wetBlob(A.polyPath([[1080, 600], [1300, 592], [1306, 700], [1086, 708]]), '#f4f7f8', '#c8d2d6', 197, { w: 3, f: .18, op: .9 }));
+    bx.path(A.skPath(1100, 630, 1284, 624, r, 2), { stroke: AL('#5f8f8a', .5), sw: 2 });
+    bx.path(A.skPath(1100, 656, 1260, 650, r, 2), { stroke: AL('#5f8f8a', .35), sw: 2 });
+    st.vignette('#000000', .48);
+    return st;
+  };
+
+  // 教室（通识课）
+  SCENES.classroom = function (st) {
+    var r = st.rnd;
+    st.sky('#eef1e6', '#cfd6c2', { clouds: 5, cloudColor: '#fbfdf7' });
+    var l = st.layer();
+    l.raw(A.wetBlob(A.polyPath([[0, 0], [1600, 0], [1600, 620], [0, 620]]), '#dfe4d2', '#b8c0a6', 201, { w: 6, f: .2, op: .85 }));
+    // 黑板
+    var b = st.layer();
+    b.raw(A.wetBlob(A.polyPath([[420, 120], [1240, 110], [1246, 470], [426, 480]]), '#3f4a42', '#24302a', 202, { w: 6, f: .18 }));
+    b.raw(A.wetBlob(A.polyPath([[440, 140], [1220, 132], [1226, 456], [446, 464]]), '#4c5a50', '#2c3a32', 203, { w: 4, f: .2, op: .8 }));
+    for (var i = 0; i < 6; i++) b.path(A.skPath(480 + i * 40, 190 + i * 8, 1100 - i * 30, 200 + i * 42, r, 3), { stroke: AL('#edf0e6', .5), sw: 3.4, lc: 'round' });
+    // 窗
+    windowFrame(st.layer(), 1290, 110, 300, 380, r, { mull: 2, glow: '#fff6d8' });
+    lightShaft(st.layer(), 1300, 120, 140, 520, r, '#fff6d8', .28);
+    // 课桌阵列
+    var d = st.layer();
+    for (var row = 0; row < 3; row++) {
+      for (var col = 0; col < 5; col++) {
+        var x = 60 + col * 310 + row * 40, y = 520 + row * 120;
+        d.raw(A.wetBlob(A.polyPath([[x, y], [x + 230, y], [x + 236, y + 26], [x - 6, y + 26]]), '#c69a62', '#7a5a32', (row * 11 + col) >>> 0, { w: 4, f: .18, op: .9 }));
+        d.raw(A.wetBlob(A.polyPath([[x + 16, y + 26], [x + 214, y + 26], [x + 200, y + 110], [x + 30, y + 110]]), '#b08a52', '#6a4a28', (row * 7 + col + 3) >>> 0, { w: 4, f: .2, op: .8 }));
+      }
+    }
+    st.vignette('#5a5a3a', .2);
+    return st;
+  };
+
+  // 资料室 / 档案架
+  SCENES.archive = function (st) {
+    var r = st.rnd;
+    st.sky('#e5e0d2', '#b8b2a0', { clouds: 4, cloudColor: '#f6f3ea' });
+    var l = st.layer();
+    for (var i = 0; i < 4; i++) {
+      var x = 40 + i * 400;
+      l.raw(A.wetBlob(A.polyPath([[x, 120], [x + 340, 120], [x + 340, 760], [x, 760]]), '#9c8a6a', '#5f5236', (i + 10) >>> 0, { w: 6, f: .2, op: .85 }));
+      for (var s = 0; s < 5; s++) {
+        var y = 160 + s * 120;
+        l.path(A.skPath(x + 10, y, x + 330, y, r, 2), { stroke: AL('#4a3c22', .4), sw: 4 });
+        for (var k = 0; k < 14; k++) {
+          var bw = r.rng(14, 26), bh = r.rng(70, 104), bx = x + 18 + k * 22;
+          var c = r.pick(['#7a5a3a', '#5a6b7a', '#6b6a52', '#8a5a52']);
+          l.raw(A.wetBlob(A.polyPath([[bx, y - bh], [bx + bw, y - bh], [bx + bw, y], [bx, y]]), S(c, .15), c, (i * 100 + s * 14 + k) >>> 0, { w: 2, f: .25, op: r.rng(.5, .8) }));
+        }
+      }
+    }
+    // 检索卡片柜
+    var c = st.layer();
+    c.raw(A.wetBlob(A.polyPath([[1220, 560], [1480, 552], [1486, 760], [1226, 768]]), '#8d7f68', '#4f4432', 211, { w: 5, f: .18 }));
+    for (var d = 0; d < 4; d++) for (var e = 0; e < 3; e++) {
+      c.raw(A.wetBlob(A.polyPath([[1240 + e * 78, 580 + d * 44], [1306 + e * 78, 578 + d * 44], [1306 + e * 78, 610 + d * 44], [1240 + e * 78, 612 + d * 44]]), '#e8e0c8', '#b0a488', (d * 5 + e) >>> 0, { w: 2, f: .2, op: .8 }));
+    }
+    lightShaft(st.layer(), 900, 60, 200, 700, r, '#fff6dc', .22);
+    st.vignette('#5f5640', .24);
+    return st;
+  };
+
+  // 宿舍阳台 · 夜
+  SCENES.balcony = function (st) {
+    var r = st.rnd;
+    st.sky('#1f2a3a', '#3b4a5f', { clouds: 8, cloudColor: '#4a5c72' });
+    var m = st.layer();
+    m.raw(A.wetBlob(A.blobPath(1300, 160, 70, 62, r, .12), '#f6f1d8', '#cfc7a0', 221, { w: 5, f: .5, op: .5 }));
+    for (var i = 0; i < 70; i++) m.circle(r.rng(0, 1600), r.rng(0, 420), r.rng(.7, 2.1), { fill: AL('#ffffff', r.rng(.2, .8)) });
+    // 远处宿舍楼窗
+    var b = st.layer();
+    for (var x = 0; x < 12; x++) for (var y = 0; y < 6; y++) {
+      var lit = r.n() < .45;
+      b.raw(A.wetBlob(A.polyPath([[60 + x * 128, 380 + y * 74], [60 + x * 128 + 70, 380 + y * 74], [70 + x * 128 + 70, 380 + y * 74 + 50], [70 + x * 128, 380 + y * 74 + 50]]), lit ? '#ffe6a8' : '#3f4a5a', lit ? '#d8a850' : '#2a323e', (x * 7 + y) >>> 0, { w: 2, f: .3, op: lit ? r.rng(.4, .8) : .5 }));
+    }
+    // 阳台栏杆与地面
+    var g = st.layer();
+    g.raw(A.wetBlob(A.polyPath([[0, 620], [1600, 620], [1600, 900], [0, 900]]), '#5a5750', '#33312c', 222, { w: 7, f: .2, op: .95 }));
+    g.path(A.skPath(0, 560, 1600, 556, r, 3), { stroke: AL('#c9c4b6', .5), sw: 6 });
+    for (var k = 0; k < 14; k++) g.path(A.skPath(40 + k * 116, 556, 40 + k * 116, 640, r, 2), { stroke: AL('#c9c4b6', .4), sw: 4 });
+    // 晾着的衣服
+    g.path(A.skPath(0, 400, 1600, 392, r, 3), { stroke: AL('#d8d2c2', .35), sw: 3 });
+    var cloth = st.layer();
+    [200, 520, 900, 1300].forEach(function (x, idx) {
+      cloth.raw(A.wetBlob(A.polyPath([[x, 400], [x + 130, 396], [x + 150, 640], [x + 10, 644]]), '#b9c4cc', '#6f7c88', (idx + 70) >>> 0, { w: 4, f: .25, op: .5 }));
+    });
+    st.vignette('#000000', .4);
+    return st;
+  };
+
+  // 雪中校道
+  SCENES.snowRoad = function (st) {
+    var r = st.rnd;
+    st.sky('#dde6ee', '#b0bec9', { clouds: 12, cloudColor: '#ffffff' });
+    var l = st.layer();
+    for (var i = 0; i < 5; i++) bigTree(l, 120 + i * 340, 700, r, { w: 60, col: '#4a4238', crown: false, bend: r.rng(-14, 14) });
+    // 雪覆枝
+    var sn = st.layer();
+    for (var b = 0; b < 40; b++) sn.raw(A.wetBlob(A.blobPath(r.rng(40, 1560), r.rng(80, 420), r.rng(30, 90), r.rng(6, 16), r, .4), '#ffffff', '#c8d4e0', (b + 10) >>> 0, { w: 3, f: .5, op: r.rng(.25, .6) }));
+    var g = st.layer();
+    g.raw(A.wetBlob(A.polyPath([[0, 700], [1600, 690], [1600, 900], [0, 900]]), '#e8eef4', '#b8c4d0', 231, { w: 8, f: .22, op: .95 }));
+    for (var k = 0; k < 20; k++) g.raw(A.wetBlob(A.blobPath(r.rng(0, 1600), r.rng(700, 890), r.rng(60, 200), r.rng(10, 30), r, .35), '#ffffff', '#cdd8e2', (k + 30) >>> 0, { w: 3, f: .6, op: r.rng(.15, .4) }));
+    // 脚印
+    for (var p = 0; p < 9; p++) {
+      var px = 300 + p * 110 + r.rng(-20, 20), py = 760 + p * 14;
+      g.raw(A.wetBlob(A.blobPath(px, py, 22, 30, r, .3), '#b6c2ce', '#8f9daa', (p + 50) >>> 0, { w: 2, f: .5, op: .35 }));
+    }
+    for (var s2 = 0; s2 < 180; s2++) sn.circle(r.rng(0, 1600), r.rng(0, 900), r.rng(1.4, 4.4), { fill: AL('#ffffff', r.rng(.4, .95)) });
+    st.vignette('#5f6b76', .26);
+    return st;
+  };
+
+  // 标题画面 · 晨光水彩
+  SCENES.title = function (st) {
+    var r = st.rnd;
+    st.sky('#f7ecd4', '#9fb6c9', { dx: .4, dy: 1, clouds: 14, cloudColor: '#fffdf2' });
+    var l = st.layer();
+    // 光晕
+    l.raw(A.wetBlob(A.blobPath(1180, 220, 320, 260, r, .16), '#fff3cd', '#e8b96a', 241, { w: 8, f: .8, op: .45 }));
+    // 抽象的纸面水彩块（呼应广播 / 磁带）
+    for (var i = 0; i < 16; i++) {
+      var c = r.pick([PAL.navy, PAL.navyL, PAL.gold, PAL.teal, '#c98f82', '#8fa8bf']);
+      var d = A.blobPath(r.rng(-100, 1700), r.rng(-60, 960), r.rng(120, 420), r.rng(70, 260), r, .35);
+      l.raw(A.wetBlob(d, S(c, .18), c, (i * 13 + 7) >>> 0, { w: 6, f: .6, op: r.rng(.08, .22) }));
+    }
+    // 落叶
+    for (var k = 0; k < 26; k++) {
+      var x = r.rng(0, 1600), y = r.rng(0, 900), a = r.rng(0, 6.28);
+      leafSpray(l, x, y, r.rng(16, 40), a, r, r.pick(['#c9a24c', '#a8813a', '#7d9a5f']), r.rng(.2, .5));
+    }
+    // 磁带轮廓
+    var tp = st.layer();
+    tp.raw(A.wetBlob(A.polyPath([[560, 560], [1040, 546], [1048, 760], [568, 774]]), '#f2ece0', '#b8ae98', 243, { w: 6, f: .2, op: .55 }));
+    tp.circle(700, 660, 44, { fill: 'none', stroke: AL('#8a8068', .7), sw: 5 });
+    tp.circle(900, 656, 44, { fill: 'none', stroke: AL('#8a8068', .7), sw: 5 });
+    tp.rect(760, 700, 80, 32, { fill: AL('#8a8068', .35) });
+    st.vignette('#5f5136', .3);
+    return st;
+  };
+
+    /* =========================================================
+   *  女主立绘 longer  （画布 900 x 1180，人物约 300~620 宽）
+   *  参考实拍：及肩偏长黑发 / 圆框金丝细边眼镜 / 白领深藏青短袖 /
+   *            米色菱形绗缝帆布书包 / 老树与灰石墙
+   * ========================================================= */
+  var EXPR = ['calm', 'serious', 'smile', 'troubled', 'solemn'];
+
+  var GLASS = { lx: 390, rx: 512, ey: 360, r: 62, gold: '#c9a75c', goldD: '#9d7c36' };
+
+  function spriteParts(e) {
+    var o = { eye: '', brow: '', mouth: '', blush: '', extra: '', tilt: 0, shine: false };
+    var lash = '#2b2420';
+    function eye(cx, cy, w, h, hi) {
+      hi = hi || 0;
+      return '<path d="M' + (cx - w) + ',' + (cy + h * 0.12) + ' Q' + cx + ',' + (cy - h * 1.28) + ' ' + (cx + w) + ',' + (cy - h * 0.06) +
+        ' Q' + cx + ',' + (cy + h * 0.96) + ' ' + (cx - w) + ',' + (cy + h * 0.12) + ' Z" fill="#fdf9f0"/>' +
+        '<ellipse cx="' + (cx + hi) + '" cy="' + (cy - h * 0.04) + '" rx="' + (w * 0.74) + '" ry="' + (h * 0.92) + '" fill="#8a6f46"/>' +
+        '<ellipse cx="' + (cx + hi) + '" cy="' + (cy - h * 0.02) + '" rx="' + (w * 0.6) + '" ry="' + (h * 0.84) + '" fill="#5c4527"/>' +
+        '<ellipse cx="' + (cx + hi) + '" cy="' + (cy + h * 0.02) + '" rx="' + (w * 0.4) + '" ry="' + (h * 0.62) + '" fill="#241c14"/>' +
+        '<ellipse cx="' + (cx + hi) + '" cy="' + (cy + h * 0.34) + '" rx="' + (w * 0.36) + '" ry="' + (h * 0.26) + '" fill="#b9a06a" opacity=".45"/>' +
+        '<circle cx="' + (cx - w * 0.36 + hi) + '" cy="' + (cy - h * 0.42) + '" r="' + (w * 0.3) + '" fill="#ffffff" opacity=".98"/>' +
+        '<circle cx="' + (cx + w * 0.38 + hi) + '" cy="' + (cy + h * 0.4) + '" r="' + (w * 0.15) + '" fill="#ffffff" opacity=".7"/>' +
+        '<path d="M' + (cx - w * 1.05) + ',' + (cy + h * 0.14) + ' Q' + cx + ',' + (cy - h * 1.34) + ' ' + (cx + w * 1.05) + ',' + (cy - h * 0.08) +
+        '" fill="none" stroke="#2a2320" stroke-width="' + (w * 0.2).toFixed(2) + '" stroke-linecap="round"/>' +
+        '<path d="M' + (cx + w * 1.0) + ',' + (cy - h * 0.06) + ' q' + (w * 0.3) + ',-' + (h * 0.1) + ' ' + (w * 0.46) + ',-' + (h * 0.46) +
+        '" fill="none" stroke="' + lash + '" stroke-width="' + (w * 0.14).toFixed(2) + '" stroke-linecap="round"/>' +
+        '<path d="M' + (cx - w * 0.58) + ',' + (cy - h * 0.92) + ' Q' + cx + ',' + (cy - h * 1.74) + ' ' + (cx + w * 0.72) + ',' + (cy - h * 0.8) +
+        '" fill="none" stroke="' + AL(lash, .2) + '" stroke-width="1.5" stroke-linecap="round"/>';
+    }
+    function brow(cx, cy, w, tilt) {
+      return '<path d="M' + (cx - w / 2) + ',' + (cy + tilt) + ' q' + (w * 0.5) + ',-' + (w * 0.3) + ' ' + w + ',' + (-tilt * 0.4) +
+        '" fill="none" stroke="#3a3129" stroke-width="3.4" stroke-linecap="round" opacity=".8"/>';
+    }
+    function blush(cx, cy, s, op) {
+      return '<ellipse cx="' + cx + '" cy="' + cy + '" rx="' + (40 * s) + '" ry="' + (19 * s) + '" fill="url(#blushG)" opacity="' + op + '"/>';
+    }
+    var EY = 360;
+    if (e === 'calm') {
+      o.eye = eye(390, EY, 33, 25, 0) + eye(512, EY, 33, 25, 0);
+      o.brow = brow(392, 310, 80, 3) + brow(510, 310, 80, 3);
+      o.mouth = '<path d="M442,474 q13,11 26,0" fill="#b5705f" opacity=".5"/>' +
+        '<path d="M442,474 q13,11 26,0" fill="none" stroke="#9a5b50" stroke-width="3" stroke-linecap="round"/>';
+      o.blush = blush(338, 424, .95, .16) + blush(564, 424, .95, .16);
+    } else if (e === 'serious') {
+      o.eye = eye(390, EY, 32, 26, 1) + eye(512, EY, 32, 26, 1);
+      o.brow = brow(392, 304, 80, 9) + brow(510, 304, 80, 9);
+      o.mouth = '<path d="M448,474 q12,-6 22,2" fill="none" stroke="#98574a" stroke-width="3.2" stroke-linecap="round"/>';
+      o.blush = blush(338, 424, .85, .1) + blush(564, 424, .85, .1);
+      o.shine = true;
+    } else if (e === 'smile') {
+      o.eye = eye(390, EY + 4, 33, 19, -1) + eye(512, EY + 4, 33, 19, -1);
+      o.brow = brow(392, 306, 82, -3) + brow(510, 306, 82, -3);
+      o.mouth = '<path d="M438,466 q19,23 46,-2 q-23,10 -46,2 Z" fill="#a5584c"/>' +
+        '<path d="M440,467 q18,21 42,-2 q-21,8 -42,2 Z" fill="#f4ded2"/>' +
+        '<path d="M452,472 q5,7 11,2 q-6,4 -11,-2 Z" fill="#c9756a" opacity=".5"/>' +
+        '<path d="M436,464 q20,25 48,-1" fill="none" stroke="#8e4a41" stroke-width="2.4" stroke-linecap="round"/>';
+      o.blush = blush(332, 420, 1.15, .3) + blush(570, 420, 1.15, .3);
+      o.shine = true;
+    } else if (e === 'troubled') {
+      o.eye = eye(390, EY + 8, 31, 19, -4) + eye(512, EY + 8, 31, 19, -4);
+      o.brow = brow(392, 314, 76, -9) + brow(510, 308, 76, 7);
+      o.mouth = '<path d="M444,478 q13,-8 26,2" fill="none" stroke="#a06054" stroke-width="2.8" stroke-linecap="round"/>';
+      o.blush = blush(330, 424, 1.2, .32) + blush(572, 424, 1.2, .32);
+      o.tilt = -4;
+      o.extra = '<path d="M600,320 q16,-18 32,0" fill="none" stroke="#8fa3ab" stroke-width="2.2" stroke-linecap="round" opacity=".45"/>';
+    } else if (e === 'solemn') {
+      o.eye = eye(390, EY, 34, 26, 0) + eye(512, EY, 34, 26, 0);
+      o.brow = brow(392, 302, 86, 1) + brow(510, 302, 86, 1);
+      o.mouth = '<path d="M442,474 q14,5 28,0" fill="none" stroke="#8e4a41" stroke-width="3.2" stroke-linecap="round"/>';
+      o.blush = blush(338, 424, .75, .07) + blush(564, 424, .75, .07);
+      o.shine = true;
+    }
+    return o;
+  }
+
+  var SPR_DEFS = [
+    '<radialGradient id="blushG" cx="50%" cy="50%" r="50%">',
+    '<stop offset="0%" stop-color="#e0897a" stop-opacity=".9"/>',
+    '<stop offset="65%" stop-color="#e0897a" stop-opacity=".28"/>',
+    '<stop offset="100%" stop-color="#e0897a" stop-opacity="0"/>',
+    '</radialGradient>',
+    '<linearGradient id="hairG" x1="0" y1="0" x2="0" y2="1">',
+    '<stop offset="0%" stop-color="#4a423c"/><stop offset="38%" stop-color="#332c27"/>',
+    '<stop offset="100%" stop-color="#1a1614"/></linearGradient>',
+    '<linearGradient id="clothG" x1="0" y1="0" x2="0.2" y2="1">',
+    '<stop offset="0%" stop-color="#3d5080"/><stop offset="70%" stop-color="#26314f"/>',
+    '<stop offset="100%" stop-color="#1b2338"/></linearGradient>',
+    '<linearGradient id="skinG" x1="0.3" y1="0" x2="0.6" y2="1">',
+    '<stop offset="0%" stop-color="#fceadd"/><stop offset="70%" stop-color="#f4d8c2"/>',
+    '<stop offset="100%" stop-color="#eac6ad"/></linearGradient>',
+    '<linearGradient id="bagG" x1="0" y1="0" x2="0.4" y2="1">',
+    '<stop offset="0%" stop-color="#e8dfc9"/><stop offset="100%" stop-color="#c6bba0"/></linearGradient>',
+    '<linearGradient id="collarG" x1="0" y1="0" x2="0" y2="1">',
+    '<stop offset="0%" stop-color="#fefcf5"/><stop offset="100%" stop-color="#eae3d2"/></linearGradient>',
+    '<filter id="sSoft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="7"/></filter>',
+    '<filter id="sSoft2" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="16"/></filter>'
+  ].join('');
+
+  function hairStrands(l, rnd, pts) {
+    for (var i = 0; i < 26; i++) {
+      var a = pts[i % pts.length], b = pts[(i + 1) % pts.length];
+      var x1 = A.lerp(a[0], b[0], rnd.rng(0.1, 0.9)), y1 = A.lerp(a[1], b[1], rnd.rng(0.1, 0.9));
+      l.path(A.skPath(x1, y1, x1 + rnd.rng(-24, 24), y1 + rnd.rng(60, 190), rnd, 4), { stroke: AL(rnd.n() < .5 ? '#6d6058' : '#1a1614', rnd.rng(.07, .2)), sw: rnd.rng(1.4, 3.6) });
+    }
+    return l;
+  }
+
+  function sprite(e) {
+    var seed = 7001;
+    var r = R(seed);
+    var p = spriteParts(e);
+    var st = new A.Scene(seed);
+    st.defs.push(SPR_DEFS);
+    st.pushDef('<clipPath id="spClip"><path d="' + A.polyPath([
+      [300, 300], [268, 470], [258, 640], [268, 900], [266, 1180], [700, 1180], [700, 900], [652, 640], [644, 470], [612, 300]
+    ], true) + '"/></clipPath>');
+    var l = st.layer();
+
+    var hairBack = A.smoothPath([
+      [294, 330], [266, 430], [252, 580], [262, 730], [292, 880], [320, 1010],
+      [368, 1064], [452, 1078], [540, 1062], [600, 1010], [636, 880],
+      [652, 730], [652, 580], [634, 430], [612, 330]
+    ], true);
+    var neck = A.smoothPath([[400, 552], [392, 610], [406, 648], [468, 656], [500, 646], [512, 606], [506, 552]], true);
+    var torso = A.smoothPath([
+      [334, 644], [300, 684], [276, 776], [266, 930], [262, 1180],
+      [700, 1180], [700, 930], [694, 776], [674, 684],
+      [648, 640], [612, 630], [560, 612], [524, 656], [452, 656], [420, 612], [368, 626]
+    ], true);
+    var collar = A.smoothPath([[420, 612], [452, 658], [524, 656], [562, 610], [546, 668], [524, 700], [452, 702], [430, 668]], true);
+    var bagL = A.smoothPath([[368, 622], [340, 706], [322, 826], [332, 900], [364, 892], [380, 800], [396, 690], [402, 624]], true);
+    var bagR = A.smoothPath([[562, 620], [592, 706], [610, 826], [600, 900], [568, 892], [552, 800], [536, 690], [530, 624]], true);
+    var hairFront = A.smoothPath([[290, 352], [276, 268], [298, 200], [356, 162], [432, 156], [500, 178], [540, 220], [558, 292], [538, 250], [498, 208], [434, 196], [366, 212], [318, 262]], true);
+    var sideL = A.smoothPath([[296, 306], [272, 412], [268, 560], [292, 690], [318, 762], [330, 668], [326, 520], [330, 402]], true);
+    var sideR = A.smoothPath([[548, 300], [576, 406], [582, 556], [560, 686], [534, 758], [522, 664], [524, 516], [518, 396]], true);
+
+    // 1. 后发
+    l.path(hairBack, { fill: 'url(#hairG)' });
+    l.raw(A.wetBlob(hairBack, '#372f2a', '#141110', 900, { w: 8, f: 0.4, op: 0.3 }));
+    l.raw('<g filter="url(#sSoft)">' + hairStrands(new A.Layer(), r, [[292, 340], [258, 560], [268, 800], [330, 1030], [450, 1070], [580, 1020], [648, 780], [650, 540], [606, 340]]).markup() + '</g>');
+    l.path(A.smoothPath([[292, 880], [306, 1010], [338, 1064], [372, 1030], [406, 1078], [452, 1046], [496, 1080], [530, 1028], [566, 1062], [600, 1006], [632, 880]], true), { fill: '#241e1a' });
+    l.raw('<g filter="url(#sSoft2)">' + A.wetBlob(A.blobPath(452, 980, 170, 90, r, .3), '#2c2621', '#171412', 911, { w: 5, f: .6, op: .5 }) + '</g>');
+
+    // 2. 身体
+    l.path(neck, { fill: '#eecfb8' });
+    l.raw(A.wetBlob(A.smoothPath([[392, 604], [512, 606], [516, 660], [388, 658]], true), '#dcb29a', '#bd9078', 901, { w: 4, f: .4, op: .5 }));
+    l.path(torso, { fill: 'url(#clothG)' });
+    l.raw(A.wetBlob(torso, '#41548a', '#151d31', 902, { w: 7, f: .35, op: .34 }));
+    l.path(A.smoothPath([[300, 684], [276, 776], [268, 930], [286, 1180], [356, 1180], [344, 920], [352, 780], [366, 692]], true), { fill: '#31446e' });
+    l.path(A.smoothPath([[674, 684], [694, 776], [700, 930], [700, 1180], [630, 1180], [618, 920], [628, 780], [612, 692]], true), { fill: '#2f4069' });
+    l.path(collar, { fill: '#232a3e' });
+    l.path(A.smoothPath([[420, 612], [452, 658], [430, 674], [400, 618]], true), { fill: 'url(#collarG)' });
+    l.path(A.smoothPath([[562, 610], [524, 656], [548, 676], [584, 616]], true), { fill: 'url(#collarG)' });
+    l.path(A.smoothPath([[420, 612], [452, 658], [430, 674], [400, 620]], true), { stroke: '#b9b098', sw: 1.6, fill: 'none' });
+    l.path(A.smoothPath([[562, 610], [524, 656], [548, 676], [584, 618]], true), { stroke: '#b9b098', sw: 1.6, fill: 'none' });
+    for (var k = 0; k < 9; k++) {
+      var yy = 700 + k * 52;
+      l.path(A.skPath(320 + r.rng(-16, 16), yy, 420 + r.rng(-24, 24), yy + r.rng(-10, 12), r, 4), { stroke: AL('#0f1729', r.rng(.1, .26)), sw: r.rng(2, 4.6) });
+      l.path(A.skPath(690 - r.rng(-16, 16), yy, 560 + r.rng(-24, 24), yy + r.rng(-10, 12), r, 4), { stroke: AL('#0f1729', r.rng(.08, .22)), sw: r.rng(2, 4.4) });
+    }
+    l.path(bagL, { fill: 'url(#bagG)' });
+    l.path(bagR, { fill: 'url(#bagG)' });
+    for (var s = 0; s < 11; s++) {
+      l.path(A.skPath(372 + s * 1.6, 640 + s * 24, 344 + s * 1.6, 660 + s * 24, r, 2), { stroke: AL('#a89b80', .45), sw: 1.6 });
+      l.path(A.skPath(560 - s * 1.6, 638 + s * 24, 588 - s * 1.6, 658 + s * 24, r, 2), { stroke: AL('#a89b80', .45), sw: 1.6 });
+    }
+    l.raw(A.wetBlob(A.blobPath(330, 852, 17, 12, r, .16), '#e8da9e', '#a8873c', 903, { w: 3, f: .3 }));
+    l.raw(A.wetBlob(A.blobPath(602, 852, 17, 12, r, .16), '#e8da9e', '#a8873c', 904, { w: 3, f: .3 }));
+    l.path(A.smoothPath([[290, 860], [272, 960], [286, 1060], [330, 1074], [348, 1010], [336, 920]], true), { fill: '#efe4d4' });
+    l.path(A.smoothPath([[286, 1030], [330, 1044], [356, 1014], [356, 978], [316, 966], [288, 986]], true), { fill: '#fae6d7' });
+    for (var f = 0; f < 4; f++) l.path(A.skPath(300 + f * 15, 1046 - f * 3, 306 + f * 15, 990 + f * 4, r, 2), { stroke: AL('#d9a98f', .55), sw: 2 });
+
+    // 3. 头 / 脸
+    l.path(A.ellipsePath(450, 400, 126, 152), { fill: 'url(#skinG)' });
+    l.path(A.smoothPath([[328, 386], [342, 480], [400, 540], [452, 556], [504, 540], [564, 480], [574, 386]], true), { fill: 'url(#skinG)', op: .85 });
+    l.raw(A.wetBlob(A.ellipsePath(450, 400, 126, 152), '#fbe4d4', '#d8a78d', 905, { w: 5, f: .45, op: .26 }));
+    l.path(A.ellipsePath(326, 402, 18, 30), { fill: '#eecdb6' });
+    l.path(A.ellipsePath(576, 402, 18, 30), { fill: '#eecdb6' });
+    l.path(A.smoothPath([[326, 388], [342, 396], [342, 414]], false), { stroke: AL('#c9947a', .5), sw: 2 });
+
+    // 4. 五官
+    var face = new A.Layer();
+    face.raw(p.blush);
+    face.raw(A.wetBlob(A.blobPath(452, 428, 9, 12, r, .25), '#d79c85', '#b87f68', 906, { w: 2, f: .4, op: .5 }));
+    face.path(A.skPath(444, 432, 458, 437, r, 1), { stroke: AL('#b87f68', .5), sw: 1.8, lc: 'round' });
+    face.raw(p.brow); face.raw(p.eye); face.raw(p.mouth); face.raw(p.extra);
+    l.raw(face.markup());
+
+    // 5. 眼镜
+    var gl = new A.Layer();
+    var gy = GLASS.ey, gr = GLASS.r;
+    gl.path(A.ellipsePath(GLASS.lx, gy, gr, gr * 1.02), { fill: AL('#eaf4f8', .035), stroke: GLASS.gold, sw: 3.4 });
+    gl.path(A.ellipsePath(GLASS.rx, gy, gr, gr * 1.02), { fill: AL('#eaf4f8', .035), stroke: GLASS.gold, sw: 3.4 });
+    gl.path(A.ellipsePath(GLASS.lx, gy, gr - 2, gr * 1.02 - 2), { fill: 'none', stroke: AL(GLASS.goldD, .45), sw: 1.2 });
+    gl.path(A.ellipsePath(GLASS.rx, gy, gr - 2, gr * 1.02 - 2), { fill: 'none', stroke: AL(GLASS.goldD, .45), sw: 1.2 });
+    gl.path(A.skPath(GLASS.lx + gr - 2, gy - 6, GLASS.rx - gr + 2, gy - 6, r, 1.2), { stroke: GLASS.gold, sw: 3.4 });
+    gl.path(A.skPath(GLASS.lx - gr + 2, gy - 8, 320, gy - 14, r, 1.4), { stroke: GLASS.gold, sw: 3.2 });
+    gl.path(A.skPath(GLASS.rx + gr - 2, gy - 8, 582, gy - 14, r, 1.4), { stroke: GLASS.gold, sw: 3.2 });
+    gl.path(A.polyPath([[GLASS.lx - 34, gy - 44], [GLASS.lx + 16, gy - 50], [GLASS.lx - 4, gy + 30], [GLASS.lx - 44, gy + 16]]), { fill: AL('#ffffff', p.shine ? .34 : .22) });
+    gl.path(A.polyPath([[GLASS.rx - 34, gy - 44], [GLASS.rx + 16, gy - 50], [GLASS.rx - 4, gy + 30], [GLASS.rx - 44, gy + 16]]), { fill: AL('#ffffff', p.shine ? .3 : .16) });
+    l.raw(gl.markup());
+
+    // 6. 前发 / 侧发
+    l.path(hairFront, { fill: '#332c27' });
+    l.raw(A.wetBlob(hairFront, '#4a423c', '#1c1815', 907, { w: 5, f: .35, op: .5 }));
+    l.path(A.smoothPath([[290, 300], [326, 220], [390, 186], [452, 188], [514, 214], [552, 282], [520, 238], [452, 218], [386, 226], [326, 262]], true), { fill: '#2f2925' });
+    l.path(A.smoothPath([[326, 226], [368, 196], [388, 244], [372, 318], [352, 292]], true), { fill: '#282220', op: .95 });
+    l.path(A.smoothPath([[394, 192], [448, 198], [436, 262], [410, 316], [394, 258]], true), { fill: '#282220', op: .95 });
+    l.path(A.smoothPath([[466, 206], [512, 232], [496, 288], [466, 264]], true), { fill: '#282220', op: .92 });
+    l.path(A.smoothPath([[524, 262], [552, 296], [540, 340], [514, 312]], true), { fill: '#282220', op: .9 });
+    l.path(sideL, { fill: '#312a25' });
+    l.path(sideR, { fill: '#312a25' });
+    l.raw(A.wetBlob(sideL, '#3c342e', '#171412', 908, { w: 5, f: .4, op: .35 }));
+    l.raw(A.wetBlob(sideR, '#3c342e', '#171412', 909, { w: 5, f: .4, op: .35 }));
+    l.raw(A.wetBlob(A.blobPath(440, 214, 96, 24, r, .3), '#8d8073', '#3d3630', 910, { w: 5, f: .65, op: .38 }));
+    for (var h = 0; h < 8; h++) {
+      var hx = 356 + h * 24;
+      l.path(A.skPath(hx, 192 + Math.abs(h - 3.5) * 9, hx + r.rng(-14, 20), 302 + r.rng(-70, 30), r, 3), { stroke: AL('#9b8e82', r.rng(.12, .32)), sw: r.rng(1.6, 3.8) });
+    }
+    for (var w2 = 0; w2 < 6; w2++) {
+      l.path(A.skPath(536 + w2 * 6, 232 + w2 * 12, 600 + r.rng(0, 34), 262 + w2 * 28, r, 3), { stroke: AL('#3b342e', r.rng(.3, .6)), sw: r.rng(2, 3.6), lc: 'round' });
+    }
+
+    if (p.tilt) l.parts.unshift('<g transform="rotate(' + p.tilt + ' 450 700)">');
+    var inner = l.markup();
+    if (p.tilt) inner += '</g>';
+    var out = st.layer();
+    out.raw(inner);
+    // 立绘去掉整张画布的底色与纸纹（否则会在背景上留下一个方块接缝）
+    var svg = st.done({ paper: false });
+    // 只在人物轮廓内补一层极淡的水彩纸纹（不使用 mix-blend-mode，避免影响背景）
+    svg = svg.replace('</svg>',
+      '<g clip-path="url(#spClip)" opacity="0.22">' +
+      A.paperOverlay(1600, 900) + '</g></svg>');
+    return svg.replace(/viewBox="0 0 1600 900" width="1600" height="900"/,
+      'viewBox="150 60 620 1130" width="620" height="1130"');
+  }
+
+  /* =========================================================
+   *  CG（5 张关键场景 + 通用大图）
+   * ========================================================= */
+  function r0(seed, k) { return R(seed + k); }
+
+  var CG = {};
+
+  CG.seat = function () { return SCENES.libSeat(new A.Scene(5101)); };
+  CG.rec = function () {
+    var st = new A.Scene(5102);
+    SCENES.studio(st);
+    st.layer().raw('<g transform="translate(170,20) scale(0.9)">' + bustInline('serious') + '</g>');
+    return st.done();
+  };
+  CG.food = function () {
+    var st = new A.Scene(5103);
+    SCENES.canteen(st);
+    st.layer().raw('<g transform="translate(360,20) scale(0.88)">' + bustInline('smile') + '</g>');
+    var l = st.layer();
+    l.raw(A.wetBlob(A.blobPath(1000, 648, 30, 15, r0(5103, 9), .28), '#ece4cf', '#a89c80', 512, { w: 3, f: .3, op: .92 }));
+    l.path(A.skPath(982, 648, 958, 636, r0(5103, 10), 1.4), { stroke: '#a89c80', sw: 2.6, lc: 'round' });
+    l.raw(A.wetBlob(A.blobPath(1000, 648, 46, 22, r0(5103, 11), .3), '#f6f0dc', '#c2b89e', 513, { w: 2, f: .6, op: .3 }));
+    return st.done();
+  };
+  CG.snow = function () {
+    var st = new A.Scene(5104);
+    SCENES.roof(st);
+    var l = st.layer();
+    l.raw('<g transform="translate(60,30) scale(0.86)">' + bustInline('solemn') + '</g>');
+    l.raw('<g transform="translate(620,40) scale(0.84)">' + bustInline('calm') + '</g>');
+    var um = new A.Layer();
+    var dome = A.smoothPath([[380, 430], [470, 300], [660, 262], [860, 316], [960, 436], [660, 392], [500, 404]], true);
+    um.path(dome, { fill: '#3d4d72' });
+    um.raw(A.wetBlob(dome, '#4a5c8c', '#1d2742', 601, { w: 6, f: .3, op: .5 }));
+    for (var i = 0; i < 5; i++) um.path(A.skPath(660, 386, 420 + i * 132, 402 + i * 6, r0(5104, i), 3), { stroke: AL('#1d2742', .45), sw: 2.2 });
+    um.path(A.skPath(660, 262, 660, 196, r0(5104, 20), 2), { stroke: '#3d4d72', sw: 7, lc: 'round' });
+    um.path(A.skPath(660, 386, 660, 500, r0(5104, 21), 2), { stroke: '#6b5636', sw: 5, lc: 'round' });
+    l.raw(um.markup());
+    return st.done();
+  };
+  CG.autumn = function () { return autumnCG('true'); };
+  CG.autumn2 = function () { return autumnCG('normal'); };
+  function autumnCG(variant) {
+    var st = new A.Scene(variant === 'normal' ? 5106 : 5105);
+    var r = st.rnd;
+    st.sky('#f7edd6', '#c6d4dc', { dx: .2, dy: 1, clouds: 12, cloudColor: '#fffdf4' });
+    var l = st.layer();
+    for (var i = 0; i < 16; i++) {
+      var c = r.pick(['#c9a24c', '#a8813a', '#7d9a5f', '#e0b84c']);
+      leafSpray(l, r.rng(60, 1540), r.rng(40, 620), r.rng(30, 70), r.rng(0, 6.28), r, c, r.rng(.3, .6));
+    }
+    var w = st.layer();
+    w.raw(A.wetBlob(A.polyPath([[380, 90], [1240, 70], [1260, 600], [400, 620]]), '#f2e6c8', '#c8b48c', 521, { w: 8, f: .25, op: .5 }));
+    for (var m = 1; m < 3; m++) w.path(A.skPath(380 + m * 288, 80, 386 + m * 288, 614, r, 3), { stroke: AL('#6b5a3e', .35), sw: 4 });
+    var d = st.layer();
+    d.raw(A.wetBlob(A.polyPath([[0, 640], [1600, 620], [1600, 900], [0, 900]]), '#c9a97a', '#8a6a44', 522, { w: 8, f: .22, op: .95 }));
+    if (variant === 'normal') {
+      d.raw(A.wetBlob(A.polyPath([[560, 690], [980, 676], [990, 840], [572, 856]]), '#e8dfc8', '#a89c80', 523, { w: 6, f: .2, op: .95 }));
+      d.circle(690, 758, 40, { fill: AL('#c9bfa4', .7), stroke: AL('#8a8068', .8), sw: 4 });
+      d.circle(860, 754, 40, { fill: AL('#c9bfa4', .7), stroke: AL('#8a8068', .8), sw: 4 });
+      d.raw(A.wetBlob(A.polyPath([[1040, 690], [1420, 676], [1428, 800], [1048, 814]]), '#fbf5e4', '#ded2b6', 524, { w: 4, f: .18, op: .95 }));
+      d.text(1090, 760, '如果……', { size: 46, fill: AL('#5f5340', .82), ls: 4 });
+      d.path(A.skPath(1090, 782, 1240, 776, r, 2), { stroke: AL('#8a7c5e', .5), sw: 2 });
+    } else {
+      var hp = A.smoothPath([[560, 790], [590, 700], [640, 668], [700, 664], [760, 668], [812, 700], [844, 790], [700, 812]], true);
+      d.raw(A.wetBlob(hp, '#2b3a63', '#16203a', 525, { w: 6, f: .25, op: .92 }));
+      d.path(A.smoothPath([[560, 790], [516, 716], [536, 636], [596, 604]], false), { stroke: '#2b3a63', sw: 13, lc: 'round' });
+      d.path(A.smoothPath([[844, 790], [890, 716], [866, 636], [806, 604]], false), { stroke: '#2b3a63', sw: 13, lc: 'round' });
+      d.circle(700, 738, 62, { fill: AL('#4a5c8c', .5), stroke: AL('#e0b84c', .55), sw: 3 });
+      d.raw(A.wetBlob(A.blobPath(700, 738, 96, 46, r, .18), '#3b4d79', '#1f2a49', 526, { w: 4, f: .5, op: .35 }));
+      d.raw(A.wetBlob(A.blobPath(760, 470, 70, 34, r, .3), '#e0b84c', '#a8813a', 527, { w: 4, f: .4, op: .92 }));
+      d.path(A.skPath(680, 486, 838, 458, r, 3), { stroke: AL('#8a6a2a', .6), sw: 2.4 });
+      d.path(A.skPath(760, 480, 736, 570, r, 3), { stroke: AL('#a8813a', .6), sw: 2 });
+    }
+    lightShaft(st.layer(), 760, 100, 220, 520, r, '#fff3cf', .3);
+    st.vignette('#5f5136', .24);
+    return st.done();
+  }
+
+  CG.lake = function () { return SCENES.lake(new A.Scene(5107)); };
+  CG.studio = function () { return SCENES.studio(new A.Scene(5108)); };
+  CG.hall = function () { return SCENES.hall(new A.Scene(5109)); };
+  CG.classroom = function () { return SCENES.classroom(new A.Scene(5110)); };
+  CG.archive = function () { return SCENES.archive(new A.Scene(5111)); };
+  CG.dorm = function () { return SCENES.dorm(new A.Scene(5112)); };
+  CG.road = function () { return SCENES.road(new A.Scene(5113)); };
+  CG.field = function () { return SCENES.field(new A.Scene(5114)); };
+  CG.canteen = function () { return SCENES.canteen(new A.Scene(5115)); };
+  CG.balcony = function () { return SCENES.balcony(new A.Scene(5116)); };
+  CG.snowRoad = function () { return SCENES.snowRoad(new A.Scene(5117)); };
+  CG.title = function () { return SCENES.title(new A.Scene(5118)); };
+  CG.roof = function () { return SCENES.roof(new A.Scene(5119)); };
+  CG.repair = function () { return SCENES.repair(new A.Scene(5120)); };
+  CG.lib = function () { return SCENES.lib(new A.Scene(5121)); };
+
+  var cache = {};
+  function unwrap(v) {
+    // 场景函数返回 Scene 对象，需要 .done() 得到 SVG 字符串
+    return (v && typeof v.done === 'function') ? v.done() : v;
+  }
+  function get(key) {
+    if (cache[key]) return cache[key];
+    var fn = CG[key];
+    var v = fn ? fn() : SCENES.lib(new A.Scene(5121));
+    cache[key] = unwrap(v);
+    return cache[key];
+  }
+  function spriteCached(e) {
+    if (!cache['sp_' + e]) cache['sp_' + e] = sprite(e);
+    return cache['sp_' + e];
+  }
+  function bust(e) {
+    var s = spriteCached(e);
+    return s.replace(/^[\s\S]*?<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '');
+  }
+
+  // 供 CG 内联使用：连同 defs 一起返回
+  function bustInline(e) {
+    var src = spriteCached(e);
+    var d = (/<defs>([\s\S]*?)<\/defs>/.exec(src) || [, ''])[1];
+    var fs = d.match(/<filter id="paper"[^>]*>[\s\S]*?<\/filter>/);
+    if (fs) d = d.replace(fs[0], '');
+    var body = src.replace(/^[\s\S]*?<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '').replace(/<defs>[\s\S]*?<\/defs>/, '');
+    return '<defs>' + d + '</defs>' + body;
+  }
+  function spriteSVG(e, mirror) {
+    var src = spriteCached(e);
+    if (!mirror) return src;
+    var vm = /viewBox="([^"]+)"/.exec(src);
+    var vb = vm ? vm[1].split(/\s+/).map(Number) : [0, 0, 620, 1130];
+    var d = (/<defs>([\s\S]*?)<\/defs>/.exec(src) || [, ''])[1];
+    var body = src.replace(/^[\s\S]*?<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '').replace(/<defs>[\s\S]*?<\/defs>/, '');
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + vb.join(' ') + '" width="' + vb[2] + '" height="' + vb[3] + '">' +
+      '<defs>' + d + '</defs>' +
+      '<g transform="translate(' + (vb[0] * 2 + vb[2]) + ',0) scale(-1,1)">' + body + '</g></svg>';
+  }
+  function spriteBust(e, mirror) { return spriteSVG(e, mirror); }
+
+  return { get: get, sprite: spriteCached, spriteSVG: spriteSVG, spriteBust: spriteBust, bust: bust, bustInline: bustInline, EXPR: EXPR, PAL: PAL, SCENES: SCENES };
+})();
+
+
+/* ===========================================================
+ *  audio.js —— 全程序化 BGM / 音效（WebAudio，无任何外部音频文件）
+ *  5 首主题曲：金线 / 四楼的斜光 / 磁头与棉签 / 高频先走的蝉 / 最后一次广播
+ * =========================================================== */
+var SOUND = (function () {
+  var ctx = null, master, busMusic, busSfx, ready = false;
+  var noiseBuf = null;
+
+  function init() {
+    if (ready) return true;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return false;
+    ctx = new AC();
+    master = ctx.createGain(); master.gain.value = 0.9;
+    var comp = ctx.createDynamicsCompressor ? ctx.createDynamicsCompressor() : null;
+    busMusic = ctx.createGain(); busMusic.gain.value = 0.5;
+    busSfx = ctx.createGain(); busSfx.gain.value = 0.6;
+    busMusic.connect(master); busSfx.connect(master);
+    if (comp) { master.connect(comp); comp.connect(ctx.destination); } else master.connect(ctx.destination);
+    // 噪声缓冲（雨 / 磁带嘶声 / 沙锤）
+    var len = ctx.sampleRate * 2;
+    noiseBuf = ctx.createBuffer(1, len, ctx.sampleRate);
+    var d = noiseBuf.getChannelData(0);
+    for (var i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    ready = true;
+    return true;
+  }
+  function resume() { if (!ctx) init(); if (ctx && ctx.state === 'suspended') ctx.resume(); }
+  function now() { return ctx.currentTime; }
+
+  function setMusicVol(v) { if (busMusic) busMusic.gain.value = v; }
+  function setSfxVol(v) { if (busSfx) busSfx.gain.value = v; }
+
+  // ---------- 音名 ----------
+  var SEMI = { c: 0, 'c#': 1, db: 1, d: 2, 'd#': 3, eb: 3, e: 4, f: 5, 'f#': 6, gb: 6, g: 7, 'g#': 8, ab: 8, a: 9, 'a#': 10, bb: 10, b: 11 };
+  function freq(n) {
+    if (typeof n === 'number') return n;
+    var m = /^([a-g][#b]?)(-?\d)$/.exec(String(n).toLowerCase());
+    if (!m) return 440;
+    var midi = 12 * (parseInt(m[2], 10) + 1) + SEMI[m[1]];
+    return 440 * Math.pow(2, (midi - 69) / 12);
+  }
+
+  // ---------- 乐器 ----------
+  function out(bus, gain) { var g = ctx.createGain(); g.gain.value = gain === undefined ? 1 : gain; g.connect(bus || busMusic); return g; }
+  function env(g, t, a, d, s, r, sus, peak) {
+    g.gain.cancelScheduledValues(t);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(peak, t + a);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.0002, peak * (sus === undefined ? 0.55 : sus)), t + a + d);
+    if (r) g.gain.exponentialRampToValueAtTime(0.0001, t + a + d + r);
+  }
+  function piano(f, t, dur, vel) {
+    var g = out(busMusic, 0); g.gain.value = vel === undefined ? 0.5 : vel;
+    var a = Math.min(0.012, dur * 0.1), d = Math.max(0.25, dur * 0.8), r = Math.max(0.5, dur * 1.6);
+    env(g, t, a, d, 0.35, r, 0.35, 0.5);
+    var o1 = ctx.createOscillator(); o1.type = 'triangle'; o1.frequency.value = f;
+    var o2 = ctx.createOscillator(); o2.type = 'sine'; o2.frequency.value = f * 2.005;
+    var o3 = ctx.createOscillator(); o3.type = 'sine'; o3.frequency.value = f * 3.01;
+    var g2 = ctx.createGain(); g2.gain.value = 0.22; var g3 = ctx.createGain(); g3.gain.value = 0.1;
+    var lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2600 + Math.min(2400, 300 / a);
+    o1.connect(g); o2.connect(g2); g2.connect(g); o3.connect(g3); g3.connect(g); g.connect(lp); lp.connect(out(busMusic, 1));
+    [o1, o2, o3].forEach(function (o) { o.start(t); o.stop(t + a + d + r + 0.1); });
+  }
+  function clarinet(f, t, dur, vel) {
+    var g = out(busMusic, 0); g.gain.value = vel === undefined ? 0.34 : vel;
+    var a = 0.09, d = dur, r = 0.35;
+    env(g, t, a, d, 0.8, r, 0.85, 0.42);
+    var o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f;
+    var lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1200; lp.Q.value = 6;
+    var lfo = ctx.createOscillator(); lfo.frequency.value = 5.2;
+    var lg = ctx.createGain(); lg.gain.value = f * 0.004; lfo.connect(lg); lg.connect(o.frequency);
+    o.connect(lp); lp.connect(g); g.connect(out(busMusic, 1));
+    o.start(t); lfo.start(t); o.stop(t + a + d + r); lfo.stop(t + a + d + r);
+  }
+  function pluck(f, t, dur, vel) {
+    var g = out(busMusic, 0); g.gain.value = vel === undefined ? 0.36 : vel;
+    env(g, t, 0.004, Math.max(0.2, dur * 0.7), 0.35, 0.4, 0.3, 0.45);
+    var o = ctx.createOscillator(); o.type = 'triangle'; o.frequency.value = f;
+    var o2 = ctx.createOscillator(); o2.type = 'sine'; o2.frequency.value = f * 2;
+    var lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 3800;
+    o.connect(g); var g2 = ctx.createGain(); g2.gain.value = 0.3; o2.connect(g2); g2.connect(g);
+    g.connect(lp); lp.connect(out(busMusic, 1));
+    o.start(t); o2.start(t); o.stop(t + dur + 0.4); o2.stop(t + dur + 0.4);
+  }
+  function bell(f, t, dur, vel) {
+    var g = out(busMusic, 0); g.gain.value = vel === undefined ? 0.24 : vel;
+    env(g, t, 0.006, dur, 0.25, 0.9, 0.2, 0.3);
+    [1, 2.76, 5.4].forEach(function (m, i) {
+      var o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = f * m;
+      var gg = ctx.createGain(); gg.gain.value = [1, 0.35, 0.12][i];
+      o.connect(gg); gg.connect(g); o.start(t); o.stop(t + dur + 1);
+    });
+    g.connect(out(busMusic, 1));
+  }
+  function pad(f, t, dur, vel) {
+    var g = out(busMusic, 0); g.gain.value = vel === undefined ? 0.12 : vel;
+    env(g, t, 0.5, dur, 0.7, 1.2, 0.8, 0.16);
+    [1, 1.005, 0.5].forEach(function (m, i) {
+      var o = ctx.createOscillator(); o.type = i === 2 ? 'triangle' : 'sawtooth'; o.frequency.value = f * m;
+      var lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900;
+      o.connect(lp); lp.connect(g); o.start(t); o.stop(t + dur + 1.4);
+    });
+    g.connect(out(busMusic, 1));
+  }
+  function bass(f, t, dur, vel) {
+    var g = out(busMusic, 0); g.gain.value = vel === undefined ? 0.22 : vel;
+    env(g, t, 0.02, dur, 0.5, 0.3, 0.5, 0.28);
+    var o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = f;
+    var o2 = ctx.createOscillator(); o2.type = 'triangle'; o2.frequency.value = f * 2;
+    var g2 = ctx.createGain(); g2.gain.value = 0.18;
+    o.connect(g); o2.connect(g2); g2.connect(g);
+    g.connect(out(busMusic, 1));
+    o.start(t); o2.start(t); o.stop(t + dur + 0.5); o2.stop(t + dur + 0.5);
+  }
+  function noise(t, dur, filt, q, vel, type) {
+    var s = ctx.createBufferSource(); s.buffer = noiseBuf; s.loop = true;
+    s.playbackRate.value = 1 + (Math.random() - 0.5) * 0.06;
+    var bp = ctx.createBiquadFilter(); bp.type = type || 'bandpass'; bp.frequency.value = filt; bp.Q.value = q || 1;
+    var g = out(busMusic, 0); g.gain.value = vel === undefined ? 0.12 : vel;
+    env(g, t, 0.01, dur, 0.5, 0.25, 0.6, 0.14);
+    s.connect(bp); bp.connect(g); g.connect(out(busMusic, 1));
+    s.start(t); s.stop(t + dur + 0.5);
+  }
+  // 磁带嘶声（循环）
+  var hissNode = null;
+  function hiss(on, vol) {
+    if (!ready) return;
+    if (on && !hissNode) {
+      var s = ctx.createBufferSource(); s.buffer = noiseBuf; s.loop = true;
+      var hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 2600;
+      var lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 7200;
+      var g = ctx.createGain(); g.gain.value = 0;
+      var lfo = ctx.createOscillator(); lfo.frequency.value = 0.7;
+      var lg = ctx.createGain(); lg.gain.value = 0.4; lfo.connect(lg); lg.connect(g.gain);
+      s.connect(hp); hp.connect(lp); lp.connect(g); g.connect(out(busSfx, 1));
+      s.start(); lfo.start();
+      hissNode = { s: s, g: g, lfo: lfo };
+      g.gain.linearRampToValueAtTime(vol === undefined ? 0.05 : vol, ctx.currentTime + 0.6);
+    } else if (!on && hissNode) {
+      try {
+        hissNode.g.gain.cancelScheduledValues(ctx.currentTime);
+        hissNode.g.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.5);
+        hissNode.s.stop(ctx.currentTime + 0.7); hissNode.lfo.stop(ctx.currentTime + 0.7);
+      } catch (e) { }
+      hissNode = null;
+    }
+  }
+
+  /* =========================================================
+   *  曲目（16 分音符网格，4/4）
+   * ========================================================= */
+  // 记谱小助手：'c4' 等；'-' 延音 ；'.' 休止
+  var TRACKS = {
+    // 1. 金线 —— 主题曲（钢琴 + 单簧管 + 弦垫）
+    gold: {
+      bpm: 68, len: 64, base: 0,
+      maps: {
+        lead: ['.', '.', '.', '.', 'e5', '.', '.', '.', 'd5', '.', '.', '.', 'c5', '.', '.', '.',
+          'b4', '.', '.', '.', '.', '.', '.', '.', 'a4', '.', '.', '.', 'c5', '.', '.', '.',
+          'e5', '.', '.', '.', '.', '.', '.', '.', 'g5', '.', '.', '.', 'e5', '.', '.', '.',
+          'd5', '.', '.', '.', '.', '.', '.', '.', 'c5', '.', '.', '.', '.', '.', '.', '.'],
+        arp: ['e4', '.', 'g4', '.', 'b4', '.', 'g4', '.', 'd4', '.', 'f#4', '.', 'a4', '.', 'f#4', '.',
+          'g3', '.', 'b3', '.', 'd4', '.', 'b3', '.', 'a3', '.', 'c4', '.', 'e4', '.', 'c4', '.',
+          'e4', '.', 'g4', '.', 'b4', '.', 'g4', '.', 'c4', '.', 'e4', '.', 'g4', '.', 'e4', '.',
+          'd4', '.', 'f#4', '.', 'a4', '.', 'f#4', '.', 'e4', '.', 'g4', '.', 'b4', '.', 'g4', '.'],
+        bass: ['e2', '.', '.', '.', '.', '.', '.', '.', 'd2', '.', '.', '.', '.', '.', '.', '.',
+          'g2', '.', '.', '.', '.', '.', '.', '.', 'a2', '.', '.', '.', '.', '.', '.', '.',
+          'e2', '.', '.', '.', '.', '.', '.', '.', 'c2', '.', '.', '.', '.', '.', '.', '.',
+          'd2', '.', '.', '.', '.', '.', '.', '.', 'e2', '.', '.', '.', '.', '.', '.', '.'],
+        clar: ['.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.',
+          '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.',
+          'b4', '.', '.', '.', '.', '.', '.', '.', 'c5', '.', '.', '.', '.', '.', '.', '.',
+          '.', '.', '.', '.', '.', '.', '.', '.', 'a4', '.', '.', '.', '.', '.', '.', '.'],
+        pad: ['.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.',
+          '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.',
+          '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.',
+          '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.']
+      },
+      padChords: [[0, 16, ['e3', 'b3', 'g4']], [16, 16, ['g3', 'd4', 'b4']], [32, 16, ['c3', 'g3', 'e4']], [48, 16, ['d3', 'a3', 'f#4']]]
+    },
+    // 2. 四楼的斜光 —— 日常（木吉他拨奏 + 钢片琴）
+    sun: {
+      bpm: 104, len: 64,
+      maps: {
+        arp: ['c4', 'e4', 'g4', 'e4', 'a3', 'c4', 'e4', 'c4', 'f3', 'a3', 'c4', 'a3', 'g3', 'b3', 'd4', 'b3',
+          'c4', 'e4', 'g4', 'e4', 'a3', 'c4', 'e4', 'c4', 'f3', 'a3', 'c4', 'a3', 'g3', 'b3', 'd4', 'g4',
+          'a3', 'c4', 'e4', 'c4', 'f3', 'a3', 'c4', 'a3', 'g3', 'b3', 'd4', 'b3', 'c4', 'e4', 'g4', 'e4',
+          'd4', 'f4', 'a4', 'f4', 'c4', 'e4', 'g4', 'e4', 'g3', 'b3', 'd4', 'g4', 'c4', 'e4', 'g4', 'c5'],
+        bass: ['c2', '.', 'g2', '.', 'a2', '.', 'e2', '.', 'f2', '.', 'c3', '.', 'g2', '.', 'd3', '.',
+          'c2', '.', 'g2', '.', 'a2', '.', 'e2', '.', 'f2', '.', 'c3', '.', 'g2', '.', 'd3', '.',
+          'a2', '.', 'e3', '.', 'f2', '.', 'c3', '.', 'g2', '.', 'd3', '.', 'c3', '.', 'g3', '.',
+          'd3', '.', 'a3', '.', 'c3', '.', 'g3', '.', 'g2', '.', 'd3', '.', 'c3', '.', 'g3', '.'],
+        bell: ['.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.',
+          'e5', '.', '.', '.', 'c5', '.', '.', '.', 'a4', '.', '.', '.', 'b4', '.', '.', '.',
+          '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.',
+          'g5', '.', '.', '.', '.', '.', '.', '.', 'a4', '.', '.', '.', '.', '.', '.', '.'],
+        lead: ['.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.',
+          '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.',
+          'c5', '.', 'b4', '.', 'a4', '.', '.', '.', 'g4', '.', 'a4', '.', 'b4', '.', '.', '.',
+          '.', '.', '.', '.', 'a4', '.', 'g4', '.', '.', '.', '.', '.', '.', '.', '.', '.']
+      }
+    },
+    // 3. 磁头与棉签 —— 修复（低音拨奏 + 磁带嘶声 + 电子脉冲）
+    fix: {
+      bpm: 92, len: 64, hiss: true,
+      maps: {
+        bass: ['a1', '.', 'a1', '.', 'e2', '.', 'a1', '.', 'a1', '.', 'a1', '.', 'c2', '.', 'd2', '.',
+          'a1', '.', 'a1', '.', 'e2', '.', 'a1', '.', 'f2', '.', 'f2', '.', 'e2', '.', 'd2', '.',
+          'a1', '.', 'a1', '.', 'e2', '.', 'a1', '.', 'g2', '.', 'g2', '.', 'e2', '.', 'c2', '.',
+          'd2', '.', 'd2', '.', 'a2', '.', 'd2', '.', 'e2', '.', 'e2', '.', 'e2', '.', 'e2', '.'],
+        arp: ['.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.',
+          'a3', '.', 'c4', '.', 'e4', '.', '.', '.', 'f3', '.', 'a3', '.', 'c4', '.', '.', '.',
+          '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.',
+          'g3', '.', 'b3', '.', 'd4', '.', '.', '.', 'e4', '.', '.', '.', 'a3', '.', '.', '.'],
+        lead: ['.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.',
+          '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.',
+          'e4', '.', '.', '.', 'g4', '.', '.', '.', 'a4', '.', '.', '.', 'e4', '.', '.', '.',
+          '.', '.', '.', '.', '.', '.', '.', '.', 'd4', '.', '.', '.', 'c4', '.', '.', '.']
+      },
+      clicks: [4, 12, 20, 28, 36, 44, 52, 60]
+    },
+    // 4. 高频先走的蝉 —— 回忆 / 独白（单簧管 + 环境声）
+    cicada: {
+      bpm: 60, len: 48, hiss: true,
+      maps: {
+        clar: ['e4', '.', '.', '.', 'g4', '.', '.', '.', 'a4', '.', '.', '.', '.', '.', '.', '.',
+          'f4', '.', '.', '.', 'a4', '.', '.', '.', 'c5', '.', '.', '.', '.', '.', '.', '.',
+          'g4', '.', '.', '.', 'b4', '.', '.', '.', 'a4', '.', '.', '.', '.', '.', '.', '.'],
+        pad: ['.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.',
+          '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.',
+          '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.'],
+        bass: ['a1', '.', '.', '.', '.', '.', '.', '.', 'f1', '.', '.', '.', '.', '.', '.', '.',
+          'c2', '.', '.', '.', '.', '.', '.', '.', 'e2', '.', '.', '.', '.', '.', '.', '.',
+          'a1', '.', '.', '.', '.', '.', '.', '.', 'g1', '.', '.', '.', 'e2', '.', '.', '.'],
+        arp: ['.', '.', 'e4', '.', '.', '.', 'b3', '.', '.', '.', 'f4', '.', '.', '.', 'c4', '.',
+          '.', '.', 'g4', '.', '.', '.', 'd4', '.', '.', '.', 'a4', '.', '.', '.', 'e4', '.',
+          '.', '.', 'a3', '.', '.', '.', 'e4', '.', '.', '.', 'b3', '.', '.', '.', 'g4', '.']
+      },
+      padChords: [[0, 16, ['a2', 'e3', 'c4']], [16, 16, ['f2', 'c3', 'a3']], [32, 16, ['e2', 'b2', 'g3']]],
+      cricket: true
+    },
+    // 5. 最后一次广播 —— 高潮（弦垫 + 电钢 + 弦乐）
+    last: {
+      bpm: 76, len: 64,
+      maps: {
+        lead: ['.', '.', '.', '.', '.', '.', '.', '.', 'e5', '.', '.', '.', 'f#5', '.', '.', '.',
+          'a5', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'g5', '.', '.', '.',
+          'f#5', '.', '.', '.', '.', '.', '.', '.', 'e5', '.', '.', '.', 'c#5', '.', '.', '.',
+          'd5', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'e5', '.', '.', '.'],
+        arp: ['a3', '.', 'c#4', '.', 'e4', '.', 'a4', '.', 'd4', '.', 'f#4', '.', 'a4', '.', 'd5', '.',
+          'f#3', '.', 'a3', '.', 'c#4', '.', 'f#4', '.', 'd3', '.', 'f#3', '.', 'a3', '.', 'd4', '.',
+          'a3', '.', 'c#4', '.', 'e4', '.', 'a4', '.', 'b3', '.', 'd4', '.', 'f#4', '.', 'b4', '.',
+          'e3', '.', 'g#3', '.', 'b3', '.', 'e4', '.', 'a3', '.', 'c#4', '.', 'e4', '.', 'a4', '.'],
+        bass: ['a1', '.', '.', '.', '.', '.', '.', '.', 'd2', '.', '.', '.', '.', '.', '.', '.',
+          'f#1', '.', '.', '.', '.', '.', '.', '.', 'd2', '.', '.', '.', '.', '.', '.', '.',
+          'a1', '.', '.', '.', '.', '.', '.', '.', 'b1', '.', '.', '.', '.', '.', '.', '.',
+          'e2', '.', '.', '.', '.', '.', '.', '.', 'a1', '.', '.', '.', '.', '.', '.', '.'],
+        pad: ['.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.',
+          '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.',
+          '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.',
+          '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.']
+      },
+      padChords: [[0, 16, ['a2', 'e3', 'c#4']], [16, 16, ['d3', 'a3', 'f#4']], [32, 16, ['b2', 'f#3', 'd4']], [48, 16, ['a2', 'e3', 'c#4']]]
+    }
+  };
+
+  var cur = null; // { name, t0, step, len, spb }
+  var timer = null;
+
+  function stepDur(track) { return 60 / track.bpm / 4; }
+
+  function schedule(fromStep, toStep, t0, spb) {
+    var tr = TRACKS[cur.name]; if (!tr) return;
+    tr.name = cur.name;
+    for (var i = fromStep; i < toStep; i++) {
+      var s = i % tr.len, t = t0 + i * spb;
+      var m = tr.maps;
+      if (m.lead && m.lead[s] !== '.') note(m.lead[s], t, spb, tr, 'lead');
+      if (m.arp && m.arp[s] !== '.') note(m.arp[s], t, spb, tr, 'arp');
+      if (m.bass && m.bass[s] !== '.') bass(freq(m.bass[s]) / 2, t, spb * 4, 0.2);
+      if (m.clar && m.clar[s] !== '.') clarinet(freq(m.clar[s]), t, spb * (tr.name === 'cicada' ? 6 : 3), 0.3);
+      if (m.pad && m.pad[s] !== '.') pad(freq(m.pad[s]), t, spb * 8, 0.1);
+      if (m.bell && m.bell[s] !== '.') bell(freq(m.bell[s]), t, spb * 4, 0.18);
+      if (tr.clicks && tr.clicks.indexOf(s) >= 0) noise(t, 0.05, 1600, 6, 0.06);
+      if (tr.cricket && s % 12 === 5) noise(t, 0.12, 4200, 12, 0.035, 'bandpass');
+      if (tr.padChords) {
+        for (var c = 0; c < tr.padChords.length; c++) {
+          var pc = tr.padChords[c];
+          if (pc[0] === s) for (var k = 0; k < pc[2].length; k++) pad(freq(pc[2][k]), t, spb * pc[1] * 0.9, 0.075);
+        }
+      }
+    }
+  }
+  function note(n, t, spb, tr, role) {
+    var f = freq(n);
+    if (role === 'lead') {
+      if (tr.name === 'gold' || tr.name === 'cicada') clarinet(f, t, spb * 6, 0.26);
+      else if (tr.name === 'last') { piano(f, t, spb * 4, 0.42); pad(f * 2, t, spb * 6, 0.06); }
+      else piano(f, t, spb * 3, 0.34);
+    } else if (role === 'arp') {
+      if (tr.name === 'sun') pluck(f, t, spb * 1.6, 0.28);
+      else if (tr.name === 'last') piano(f, t, spb * 2.2, 0.3);
+      else piano(f, t, spb * 2, 0.24);
+    }
+  }
+
+  function play(name) {
+    if (!ready && !init()) return;
+    resume();
+    if (cur && cur.name === name) return;
+    stopMusic(0.4);
+    var tr = TRACKS[name]; if (!tr) return;
+    cur = { name: name, t0: ctx.currentTime + 0.12, step: 0 };
+    if (tr.hiss) hiss(true, name === 'cicada' ? 0.035 : 0.05);
+    var spb = stepDur(tr);
+    var tick = function () {
+      if (!cur) return;
+      var elapsed = ctx.currentTime - cur.t0;
+      var want = Math.floor(elapsed / spb) + 8;
+      if (want > cur.step) { schedule(cur.step, want, cur.t0, spb); cur.step = want; }
+    };
+    tick();
+    timer = setInterval(tick, 60);
+  }
+  function stopMusic(fade) {
+    if (timer) { clearInterval(timer); timer = null; }
+    if (cur) {
+      var t = ctx.currentTime;
+      try {
+        busMusic.gain.cancelScheduledValues(t);
+        busMusic.gain.setValueAtTime(busMusic.gain.value, t);
+        busMusic.gain.linearRampToValueAtTime(0.0001, t + (fade || 0.5));
+        setTimeout(function () { if (busMusic) busMusic.gain.value = 0.5; }, (fade || 0.5) * 1000 + 60);
+      } catch (e) { }
+    }
+    cur = null;
+  }
+  function switchTo(name) { play(name); }
+  function current() { return cur ? cur.name : null; }
+
+  /* ---------- 音效 ---------- */
+  function sfx(name) {
+    if (!ready && !init()) return; resume();
+    var t = now();
+    if (name === 'click') { noise(t, 0.02, 2600, 3, 0.05); }
+    else if (name === 'select') { pluckTone(880, t, 0.09, 0.16, busSfx); pluckTone(1320, t + 0.05, 0.12, 0.12, busSfx); }
+    else if (name === 'back') { pluckTone(520, t, 0.12, 0.14, busSfx); }
+    else if (name === 'page') { noise(t, 0.18, 1800, 0.8, 0.07, 'lowpass'); }
+    else if (name === 'record') { pluckTone(1200, t, 0.05, 0.1, busSfx); noise(t + 0.05, 0.5, 3000, 1, 0.05); }
+    else if (name === 'snow') { [1320, 1760, 2640].forEach(function (f, i) { bellTone(f, t + i * 0.18, 1.1, 0.1, busSfx); }); }
+    else if (name === 'tape') { hiss(true, 0.06); setTimeout(function () { hiss(false); }, 1800); }
+  }
+  function pluckTone(f, t, dur, vel, bus) {
+    var g = out(bus, 0); g.gain.value = vel;
+    env(g, t, 0.004, dur, 0.3, dur * 3, 0.3, 0.4);
+    var o = ctx.createOscillator(); o.type = 'triangle'; o.frequency.value = f;
+    o.connect(g); g.connect(out(bus, 1)); o.start(t); o.stop(t + dur * 4);
+  }
+  function bellTone(f, t, dur, vel, bus) {
+    var g = out(bus, 0); g.gain.value = vel;
+    env(g, t, 0.004, dur, 0.2, dur, 0.2, 0.3);
+    var o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = f;
+    o.connect(g); g.connect(out(bus, 1)); o.start(t); o.stop(t + dur * 2.2);
+  }
+
+  return {
+    init: init, resume: resume, play: play, stop: stopMusic, current: current,
+    sfx: sfx, setMusicVol: setMusicVol, setSfxVol: setSfxVol, tracks: Object.keys(TRACKS)
+  };
+})();
+
+
+/* ===========================================================
+ *  script0.js —— 序章《空座位》+ 第 1 章《推开播音室的门》
+ * =========================================================== */
+var META_TITLE = {
+  title: '长耳听见的那一年',
+  subtitle: '把最后一盘磁带，交给下一个秋天',
+  tagline: '有些声音不会消失，它们只是换了一个人替它们记得。',
+  defaultName: '江知远'
+};
+
+var SCRIPT_0 = [
+  { t: 'chapter', name: '序章', sub: '空座位' },
+
+  { t: 'bg', name: 'lib' }, { t: 'music', name: 'sun' }, { t: 'sfx', name: 'page' },
+  { text: '九月的午后，图书馆四楼的空气是甜的——旧纸、灰尘和一点点被晒热的地板的味道。' },
+  { text: '那年夏天刚结束。宿舍楼下的梧桐还没开始掉叶子，操场上的塑胶味也还没散干净。' },
+  { text: '大一结束的时候，我以为自己已经熟悉这所学校了：知道三食堂几点人最少，知道哪条路晚上路灯坏。' },
+  { text: '但那天下午我意识到，我其实还有一整栋楼没进去过——图书馆四楼，人文社科旧书库。' },
+  { text: '我摊开速写本，在《中国现当代散文选读》的书堆旁边，画一条怎么也画不直的透视线。' },
+  { text: '建筑系的人习惯用测量代替表达：窗台到桌面的高度是 0.74 米，光斑从书架上滑到桌面要十七分钟。' },
+  { text: '至于“想说的话”，我一直不太会量。' },
+  { text: '书单上写着“散文选 · 1997 年第三版，馆藏两册”。第一册不在架上，第二册在——在一位刚起身的女生手里。' },
+  { text: '她抱着书走向服务台，走到一半又停下，从书包里摸出一张纸巾，先擦了擦手，才把书翻到某一页。' },
+  { text: '这个动作让我多看了她两秒。' },
+  { text: '等她走远，我伸手去拿她留在桌上的那本书——不是同一本，是压在下面的一册，书脊上贴着很旧的手写索书号。' },
+  { text: '翻开，里面的借书卡已经贴过又撕过一次，残留的胶发黄。最末一行，是一个被描过很多遍的词。' },
+  { text: '“longer”。不是中文，也不是馆里的登记字迹。' },
+  { text: '铅笔痕深浅不一，看得出是很多次、很多年里写下的。' },
+  { t: 'sfx', name: 'page' },
+  { text: '再往里翻，某一页的页边写着一行小字：' },
+  { s: '铅笔的笔迹', t: '“如果还来得及，你最想留下哪一句？”' },
+  { text: '字很轻，像怕吵到别人。' },
+  { text: '我坐在那个空座位的斜对面，研究了她留下来的所有痕迹。' },
+  { text: '她看书很快，只有喜欢的段落才会折角；她不用荧光笔，只用铅笔，而且从不擦掉自己以前的字。' },
+  { text: '所以那一页上，同一句话被批注过三次，一次比一次短。' },
+  { text: '我不知道自己为什么回答。也许是那个下午太安静了，安静到有人问话，就应当有人答。' },
+  { text: '也可能是：我今天本来没有打算和任何人说话。' },
+  { text: '我翻开借书卡的背面，用铅笔写下：' },
+  { s: '', t: '“想把说出口太晚的那一句，先录下来。”' },
+  { text: '写完我发现，那句“太晚”写得特别用力，几乎要划破卡片。' },
+  { text: '“……同学？”' },
+  { text: '我抬头。靠窗的位置已经空了。' },
+  { text: '窗台上还留着一个浅浅的杯底印，圈里有一圈没干的水。' },
+  { text: '只剩下一块折得方方正正的眼镜布，和一枚小小的金属校徽，被压在书页之间。' },
+  { text: '校徽是旧的，边缘被磨圆了，背面刻着两个小到几乎看不见的字：一个“潜”。' },
+  { t: 'cg', name: 'seat' },
+  { text: '窗外梧桐的影子铺在地板上，一格一格，像时间被谁切开分好了。' },
+  { t: 'cgEnd' },
+
+  { t: 'choice', options: [
+    { text: '追出去，把书还给她。', tag: '第一章 · 追出去', love: 1, mem: '她的背影', set: { a_go: 1 }, goto: 'p_go' },
+    { text: '把校徽压在书里，原样放回架上。', tag: '第一章 · 原样放回', mem: '空座位', set: { a_stay: 1 }, goto: 'p_stay' },
+    { text: '只抄下卡片上的那个名字，什么也不做。', tag: '第一章 · 只抄名字', love: 0.5, mem: 'longer', set: { a_copy: 1 }, goto: 'p_copy' }
+  ] },
+
+  { t: 'label', label: 'p_go' },
+  { t: 'bg', name: 'lib' }, { t: 'sfx', name: 'select' },
+  { text: '我抱着那本书追出去，脚步在四楼的水磨石地面上敲出一串急促的回音。' },
+  { text: '楼梯拐角，她正靠在窗边系书包带，听见声音回过头来。' },
+  { text: '及肩偏长的黑发，发尾自然微卷，一侧被别到耳后。圆框金丝眼镜，镜片后是一双像一直在认真听的眼睛。' },
+  { text: '天蓝色的短袖翻领衫，白领子洗得发软。米色的帆布书包，背带有菱形绗缝的纹路，边角磨出了浅色痕。' },
+  { t: 'sprite', e: 'calm' },
+  { s: '龙潜', t: '……那本书，是你手上的那一册吗？' },
+  { s: '{name}', t: '是。你把它落下了。' },
+  { t: 'sprite', e: 'smile' },
+  { s: '龙潜', t: '谢谢你。我找了它整整一个上午。' },
+  { text: '她双手接过书，鞠了一个幅度很小、却很认真的躬。' },
+  { s: '龙潜', t: '这一版里有几篇后来被删掉的文章，只有 1997 年印的这一册留着。' },
+  { t: 'cg', name: 'rec' },
+  { s: '{name}', t: '所以你才擦干净手再翻。' },
+  { t: 'cgEnd' },
+  { t: 'sprite', e: 'solemn' },
+  { s: '龙潜', t: '……被你看到了。' },
+  { text: '她把书抱在胸前，像抱着一件容易碎的东西。' },
+  { s: '龙潜', t: '那你有没有看到里面有张卡？' },
+  { s: '{name}', t: '看到了。' },
+  { s: '龙潜', t: '上面写了什么？' },
+  { text: '我犹豫了一下，还是把背面翻给她看——那行铅笔字：想把说出口太晚的那一句，先录下来。' },
+  { t: 'sprite', e: 'serious' },
+  { text: '她盯着那行字看了很久。久到窗外的光斑又爬过了半块地板。' },
+  { s: '龙潜', t: '……原来是你。' },
+  { s: '{name}', t: '“原来是你”？' },
+  { t: 'sprite', e: 'calm' },
+  { s: '龙潜', t: '没什么。就是——我在这本书里问过很多次，第一次有人回答我。' },
+  { text: '她把书递回来一半，又停在半空。' },
+  { s: '龙潜', t: '书你先拿着吧。里面第 214 页，我还没舍得把那句话擦掉。' },
+  { s: '龙潜', t: '等你想还的时候，再还。' },
+  { text: '她说完就走了。书包带上那枚别针一样的小校徽，在楼梯口闪了一下。' },
+  { t: 'mem', s: '她的背影' },
+  { t: 'jump', target: 'ch1' },
+
+  { t: 'label', label: 'p_stay' },
+  { text: '我没有追。' },
+  { text: '我把那枚校徽压在她留下的那一页上，合上书，放回原处。' },
+  { text: '管理员阿姨抬头看了我一眼，说：“那本有人预约了。”我说知道，我只是把它放回去。' },
+  { text: '回座位的路上我在想：如果我把书还给她，是不是就多认识一个人；如果我不还，这本书里就还留着一个没被打破的下午。' },
+  { text: '我选了后者。这很像我的性格——把话留在原地，让它自己长大或者自己死掉。' },
+  { text: '那天以后，我每次去四楼都会先看一眼靠窗第三张桌子。' },
+  { text: '大部分时候是空的。偶尔有人，也都不是她。' },
+  { text: '只有借书卡上那个被描过很多遍的名字，一直在那里。' },
+  { t: 'mem', s: '空座位' },
+  { t: 'jump', target: 'ch1' },
+
+  { t: 'label', label: 'p_copy' },
+  { text: '我没有追，也没有把书放回去。' },
+  { text: '我打开速写本，在空白的一页上，把那个词抄了下来：longer。' },
+  { text: '笔画是往右下方收的，收得很轻，像一个人写字时会不自觉地屏住呼吸。' },
+  { text: '我把这一页折了个角，压进书堆最下面。' },
+  { text: '——我想好了。如果还有下一次，我要先问她：这个名字，应该怎么念。' },
+  { t: 'mem', s: 'longer' },
+
+  { t: 'label', label: 'ch1' },
+  { t: 'chapter', name: '第 1 章', sub: '推开播音室的门' },
+  { t: 'bg', name: 'road' }, { t: 'music', name: 'sun' }, { t: 'sfx', name: 'page' },
+  { text: '十月。《散文选读》的作业下来了：两人一组，做一个“口述史”。' },
+  { text: '题目自拟，但必须有一个声音的载体——采访、讲座、广播、录音都行。' },
+  { text: '要交作业，得有设备。有人告诉我，校广播台还留着一间播音室，就在小礼堂二楼那面爬了半墙爬山虎的墙后面。' },
+  { t: 'bg', name: 'studio' }, { t: 'sfx', name: 'page' },
+  { text: '门牌是手写的：广播台。下面贴着一张打印的《关于社团活动室合并的通知》。' },
+  { text: '我敲了三下门。里面传来一个声音：' },
+  { s: '？', t: '请进——门没锁，进来的时候小心脚下。' },
+  { text: '我推开门。' },
+  { t: 'sprite', e: 'serious' },
+  { text: '地上摊着七盘磁带、两支铅笔、一盒棉签，还有一台正被拆到一半的调音台。' },
+  { text: '她跪坐在那堆东西中间，手里捏着一根棉签，抬头看我——就是九月里在图书馆楼梯口的那个女生。' },
+  { s: '龙潜', t: '哦，是你。' },
+  { s: '{name}', t: '你记得我。' },
+  { t: 'sprite', e: 'calm' },
+  { s: '龙潜', t: '因为你是第一个在这本书里回答我的人。' },
+  { s: '龙潜', t: '而且——你把校徽带走了。那枚是我自己做的，用坏掉的电位器外壳磨的。' },
+  { text: '我摸了摸口袋，那枚校徽还躺在里面。' },
+  { t: 'sprite', e: 'smile' },
+  { s: '龙潜', t: '不用还。就当是你回答的那个问题的礼物。' },
+  { text: '她把棉签换到左手，右手在裤子上擦了擦，才伸过来。' },
+  { s: '龙潜', t: '龙潜。新闻传播学院，播音与主持艺术，大四。' },
+  { s: '龙潜', t: '念长一点也没关系——念成 longer 也行。大家从小就这么叫我。' },
+  { s: '龙潜', t: '别问我为什么。我也只是听别人这么叫，就叫了十几年。' },
+  { s: '{name}', t: '{name}。建筑学院，大二。' },
+  { s: '龙潜', t: '{name}。两个字都很稳，像图签上的字。' },
+  { t: 'sprite', e: 'calm' },
+  { s: '龙潜', t: '建筑系。那你来广播台做什么？拍空间吗？' },
+  { s: '{name}', t: '做口述史作业，来借录音设备。' },
+  { s: '龙潜', t: '……口述史。' },
+  { text: '她笑了一下，那笑有点像在替谁叹气。' },
+  { t: 'sprite', e: 'solemn' },
+  { s: '龙潜', t: '那你来得正好，也来得太晚了。' },
+  { s: '龙潜', t: '广播台年底并进新媒体中心。设备要清点、房间要交、磁带要归档。' },
+  { s: '龙潜', t: '这台调音台比我年纪大，但它认得我。这个房间的每一块吸音棉，都喝了三十年的回声。' },
+  { text: '她把手指按在调音台最左边那一路上，那里贴着一小块褪色的胶布，上面写着“别动”。' },
+  { s: '龙潜', t: '这一路是我入学那年烧掉的。修不好，但我不舍得拆。' },
+  { s: '{name}', t: '所以你在拆它。' },
+  { s: '龙潜', t: '我在救它。' },
+  { text: '她站起来，随手把散在脚边的磁带往旁边踢了踢，腾出一块地方。' },
+  { t: 'bg', name: 'archive' },
+  { text: '她带我去隔壁的资料室。铁门轴发出很长的呻吟，灯管闪了三次才亮。' },
+  { text: '四排铁架，从地面堆到天花板。每一盒磁带盒上都贴着标签，标签上写着年份，和两个字：留言。' },
+  { t: 'sprite', e: 'serious' },
+  { s: '龙潜', t: '从 1989 年到今年，每年毕业季，广播台会录一期《最后一期》。' },
+  { s: '龙潜', t: '在那天傍晚，谁都可以走进播音室，对着麦克风说一句想留在这个学校的话。' },
+  { s: '龙潜', t: '说完的人，第二天就毕业了。' },
+  { s: '{name}', t: '……所以这四排，是三十年的告别。' },
+  { s: '龙潜', t: '准确说，是三百四十一句告别。我数过。' },
+  { text: '她抬手在架子上敲了敲，像在敲一堵会呼吸的墙。' },
+  { s: '龙潜', t: '新媒体中心只要电子版。他们说“这个年代没人听磁带了”。' },
+  { s: '龙潜', t: '可这三百四十一句里，有三分之二还没被转成数字——它们现在只活在这层氧化铁上。' },
+  { s: '龙潜', t: '一盒磁带能撑三十年，第三十一年它就开始自己消失了。' },
+  { s: '龙潜', t: '我大四了，我要交一个毕业作品。' },
+  { t: 'sprite', e: 'solemn' },
+  { s: '龙潜', t: '我想做的，是把它们全部整理、修复、播出去——在广播台被并掉之前，让这些年，完整地谢一次幕。' },
+  { text: '灯管又闪了一下。灰尘在空中慢慢翻了个身。' },
+  { s: '龙潜', t: '你会剪音频吗？' },
+  { s: '{name}', t: '不会。' },
+  { s: '龙潜', t: '会做海报？' },
+  { s: '{name}', t: '不会。但我可以把声音画出来。' },
+  { t: 'sprite', e: 'serious' },
+  { text: '她愣了一下。' },
+  { s: '龙潜', t: '画出来？' },
+  { s: '{name}', t: '把一段声音的波形画成线条图。哪里在涨、哪里在塌、哪里断了——建筑图就是这么看结构的。' },
+  { s: '{name}', t: '你的最后一场节目，总得有人替它画一张图。' },
+  { text: '她盯着我看了三秒。然后很轻地笑了一声，像有人在她耳边按下了录音键。' },
+  { t: 'sprite', e: 'smile' },
+  { s: '龙潜', t: '成交。你是“封面与场地记录”。' },
+  { s: '龙潜', t: '从明天起，放学来广播台。' },
+  { s: '龙潜', t: '另外——把你的作业顺便做了吧，我当你的受访者。' },
+  { t: 'jump', target: 'b_tape' },
+
+  { t: 'label', label: 'b_tape' },
+  { t: 'bg', name: 'studio' }, { t: 'music', name: 'fix' },
+  { text: '第二天下午，我如约去了。' },
+  { text: '她已经在里面了，从纸箱里翻出一盒磁带，用棉签一个孔一个孔地擦。' },
+  { t: 'sprite', e: 'serious' },
+  { s: '龙潜', t: '先学第一课：一台机器好不好，不看它响不响，看它干净不干净。' },
+  { s: '龙潜', t: '磁头上一层灰，声音就老十年。' },
+  { text: '她把一盒磁带举到灯下。标签上是褪色的蓝墨水：1989 · 最后一期。' },
+  { s: '龙潜', t: '这一盒，整个架子最旧。' },
+  { text: '她把它推进磁带机。转轴开始转，喇叭里先是嘶声，然后是一段很远的、像从水底传上来的声音。' },
+  { text: '……然后断了。磁带从中间崩开，黑色的带子像一条受惊的蛇，从机器里溢出来。' },
+  { t: 'fx', name: 'shake' }, { t: 'sfx', name: 'tape' },
+  { s: '龙潜', t: '……它又断了。' },
+  { text: '她没有叹气。她只是把溢出来的带子一段段收好，抱在怀里。' },
+  { t: 'sprite', e: 'troubled' },
+  { s: '龙潜', t: '我修了两个月。断口一共有十七处。' },
+  { s: '龙潜', t: '这一盒里，有 1989 年那届所有人的最后一句。他们当年约好，梧桐落叶的那天回来看一眼。' },
+  { s: '龙潜', t: '三十多年过去了。他们一个都没回来。' },
+  { s: '龙潜', t: '如果我把这盒修好，播出去——也许有人会在某个城市听见自己二十岁的声音。' },
+
+  { t: 'choice', options: [
+    { text: '留下来。一起修。', tag: '第 1 章 · 一起修', love: 1, mem: '十七处断口', set: { b_fix: 1 }, goto: 'b_fix' },
+    { text: '“先写一份整理报告就够了，陈老师要的是流程。”', tag: '第 1 章 · 交报告', love: -0.5, mem: '她收起的话', set: { b_report: 1 }, goto: 'b_report' },
+    { text: '“为什么非要是这一盘？”', tag: '第 1 章 · 追问', love: 0.5, mem: '1989', set: { b_ask: 1 }, goto: 'b_ask' }
+  ] },
+
+  { t: 'label', label: 'b_fix' },
+  { t: 'bg', name: 'repair' },
+  { t: 'sprite', e: 'serious' },
+  { s: '{name}', t: '我留下来。一起修。' },
+  { s: '龙潜', t: '……你知道这要多久吗。' },
+  { s: '{name}', t: '知道。比画一栋楼快。' },
+  { text: '她看了我很久，然后从抽屉里拿出一张纸，推到我面前。' },
+  { text: '十七处断口，被她用很小的字标了位置，像一张受伤的地图。' },
+  { s: '龙潜', t: '那好。你负责记，我负责接。' },
+  { s: '龙潜', t: '每一处断口都要接回去，顺序不能错。错一格，那一年的人就会说错一句话。' },
+  { text: '那天我们从天黑忙到宿舍熄灯。她教我用铅笔转齿轮，教我用棉签蘸无水乙醇擦磁头。' },
+  { text: '她的指尖很稳。稳到有一点不像二十出头的人。' },
+  { t: 'mem', s: '十七处断口' },
+  { t: 'jump', target: 'b_report' },
+
+  { t: 'label', label: 'b_report' },
+  { t: 'bg', name: 'repair' },
+  { s: '{name}', t: '其实——先写一份整理报告就够了。陈老师要的是流程完整，不一定要把每一盘都修好。' },
+  { text: '她没有抬头。棉签在磁头上停了半秒。' },
+  { t: 'sprite', e: 'troubled' },
+  { s: '龙潜', t: '嗯。你说得对，这样最省事。' },
+  { s: '龙潜', t: '……报告我来写吧。这部分我最熟。' },
+  { text: '她把那盒 1989 年放回纸箱最底下，动作很轻，像怕它再断一次。' },
+  { text: '后来我才知道，那天她收起的不只是一盒磁带。' },
+  { t: 'mem', s: '她收起的话' },
+  { t: 'jump', target: 'ch2_body' },
+
+  { t: 'label', label: 'b_ask' },
+  { t: 'bg', name: 'repair' },
+  { t: 'sprite', e: 'troubled' },
+  { s: '{name}', t: '为什么非要是这一盘？' },
+  { text: '她抱着那堆带子坐在地上，背靠着铁架。' },
+  { s: '龙潜', t: '……因为我从来没听过“完整”的一期。' },
+  { s: '龙潜', t: '我大一入学那天，广播台在放这一盒，放到第二十分钟断的。' },
+  { s: '龙潜', t: '我记得那一段的底噪里有蝉声——八月底的蝉，特别吵。' },
+  { s: '龙潜', t: '我那时候想，一台机器能记住一个夏天的蝉，多厉害。' },
+  { t: 'sprite', e: 'calm' },
+  { s: '龙潜', t: '所以我想让它在最后一年，完整地响一次。哪怕只响一次。' },
+  { text: '她说这些话的时候，声音很轻，但每个字都很清楚——像有人在替她校过音。' },
+  { t: 'mem', s: '1989' },
+  { t: 'jump', target: 'ch2_body' },
+];
+
+/* ===========================================================
+ *  script1.js —— 第 2 章《变薄的声音》
+ * =========================================================== */
+var SCRIPT_1 = [
+  { t: 'label', label: 'ch2_body' },
+  { t: 'chapter', name: '第 2 章', sub: '变薄的声音' },
+  { t: 'bg', name: 'canteen' }, { t: 'music', name: 'sun' }, { t: 'sfx', name: 'page' },
+  { text: '十一月，风开始有牙齿。' },
+  { text: '食堂三楼的窗口前排队排到楼梯口。她端着两份饭，在人潮里很准确地找到了我——像一段波形找到了它该有的位置。' },
+  { t: 'sprite', e: 'calm' },
+  { s: '龙潜', t: '你吃什么？我按你的选修课表猜的：周三第四节下课，你走最近的那条路，会经过三楼。' },
+  { s: '{name}', t: '……你连这个都记。' },
+  { s: '龙潜', t: '记声音的人，习惯一起记路线。' },
+  { text: '她把一碗面推给我，自己那碗只要了一勺辣。' },
+  { t: 'bg', name: 'repair' }, { t: 'music', name: 'fix' },
+  { text: '下午在广播台，她开始教我怎么“听”一盘坏掉的磁带。' },
+  { t: 'sprite', e: 'serious' },
+  { s: '龙潜', t: '第一步，测转速。' },
+  { text: '她把一支铅笔插进磁带轮的孔里，左手扶住盒身，右手很慢地转。' },
+  { s: '龙潜', t: '转一圈是固定的长度。转快了声音尖，转慢了声音沉。' },
+  { s: '龙潜', t: '耳朵要跟着手走。手要跟着那一年走。' },
+  { text: '我试了三次，第三次才转匀。她没说好，也没说不好，只是把铅笔递给我，让我再来一次。' },
+  { s: '龙潜', t: '第二步，擦磁头。' },
+  { s: '龙潜', t: '声音这东西很小气。你一偷懒，它就老给你看。' },
+  { text: '棉签在磁头上划过去，留下一条很浅的褐色痕。' },
+  { s: '{name}', t: '这些灰，是三十年前的人留下的吗。' },
+  { t: 'sprite', e: 'solemn' },
+  { s: '龙潜', t: '……是三十年前的空气留下的。' },
+  { s: '龙潜', t: '人已经走了，声音还在，声音上面的灰还在。' },
+  { s: '龙潜', t: '所以我说，修磁带这件事，跟修一栋楼差不多——你是在给一段时间做加固。' },
+  { text: '第三步，降噪。' },
+  { text: '她把耳机递给我一半，让我听那段从水底捞上来的声音，再听她把嘶声一点点压下去之后的样子。' },
+  { text: '同一句话，前一遍像隔着一整个操场，后一遍像有人就站在我左边。' },
+  { text: '波形图上，原本毛糙的一团被她一点点收成了一条干净的线。' },
+  { text: '像给一栋旧楼拆掉了脚手架。' },
+  { text: '我盯着屏幕上那条波形看：原本毛毛糙糙的一团，被她一点点收成了一条干净的线。' },
+  { text: '像给一栋旧楼清掉了脚手架。' },
+  { s: '龙潜', t: '听到了吗？刚才那句“我们还会回来”，原来是清清楚楚的。' },
+  { text: '我点头。她笑了，露出右嘴角先动的那种笑。' },
+  { t: 'sprite', e: 'smile' },
+  { s: '龙潜', t: '好。你能听出来，说明你的耳朵可以借我用。' },
+  { s: '{name}', t: '借？' },
+  { s: '龙潜', t: '……随口说的。' },
+  { text: '她把耳机收回去，动作比刚才快了一点。' },
+
+  { t: 'bg', name: 'field' }, { t: 'music', name: 'sun' }, { t: 'sfx', name: 'page' },
+  { text: '周末傍晚，操场。她约我来跑步，理由是“做节目的人体力不能差”。' },
+  { text: '跑了三圈她就停了，坐在看台最下面一级，抱着膝盖喘。' },
+  { text: '夕阳把跑道晒成一条发着热的红。八百米外有人还在跑，脚步声隔了很久才传过来。' },
+  { t: 'sprite', e: 'calm' },
+  { s: '龙潜', t: '你听。' },
+  { s: '{name}', t: '听什么？' },
+  { s: '龙潜', t: '蝉。都十一月了，还有一只在叫。' },
+  { text: '我屏住呼吸，听了很久，才在看台后面的那棵老樟树上找到那一丝声音——细，但一直没停。' },
+  { s: '{name}', t: '就那一只。' },
+  { t: 'sprite', e: 'solemn' },
+  { s: '龙潜', t: '嗯。我听见了。' },
+  { s: '龙潜', t: '——但我听见的，比你听见的少。' },
+  { text: '她把手放在耳朵附近，又放下，像在找一个合适的姿势说这件事。' },
+  { s: '龙潜', t: '我小时候发过一次很高的烧。' },
+  { s: '龙潜', t: '从那以后，有些频率在我这里，就一直隔着一层玻璃。' },
+  { s: '龙潜', t: '医生说是高频先走。走得很慢，慢到你自己都不知道它什么时候走的。' },
+  { s: '龙潜', t: '最先听不见的是蝉。然后是女生在背后小声说话的那种声音。然后是耳机里最上面那一层。' },
+  { text: '风从看台上刮过去。那只蝉还在叫，叫得有点孤勇。' },
+  { s: '龙潜', t: '其实我早就该说了。大二那年查出来，我谁都没告诉。' },
+  { s: '龙潜', t: '我妈现在还会在电话里问我“听得清吗”，我每次都说清得很。' },
+  { s: '{name}', t: '那你为什么现在告诉我。' },
+  { t: 'sprite', e: 'troubled' },
+  { s: '龙潜', t: '因为你从来没有用“可怜”那种语气跟我说过话。' },
+  { s: '龙潜', t: '你只是在听。' },
+  { s: '龙潜', t: '其实我早就该说了。大二那年查出来，我谁都没告诉。' },
+  { s: '龙潜', t: '我妈现在还会在电话里问我“听得清吗”，我每次都说清得很。' },
+  { s: '{name}', t: '那你为什么现在告诉我。' },
+  { t: 'sprite', e: 'troubled' },
+  { s: '龙潜', t: '因为你从来没有用“可怜”的那种语气跟我说过话。' },
+  { s: '龙潜', t: '你只是在听。' },
+  { s: '龙潜', t: '所以我才学播音。很不合理，对吧？' },
+  { s: '龙潜', t: '一个要失去声音的人，去做记录声音的事。' },
+  { s: '龙潜', t: '我只是想——在还听得见的时候，把该留下的都留下来。' },
+  { s: '{name}', t: '你为什么不早说。' },
+  { t: 'sprite', e: 'troubled' },
+  { s: '龙潜', t: '因为一旦说了，所有人都会开始照顾我。' },
+  { s: '龙潜', t: '然后广播台的那件事，就不再是我做的事，而是“大家帮一个病人做的事”。' },
+  { s: '龙潜', t: '我不要那个。我要它是我的。' },
+  { text: '我第一次发现，“记录”这个词也可以这么自私，这么倔。' },
+  { text: '也第一次发现，她说“借你的耳朵”的时候，其实不是在开玩笑。' },
+
+  { t: 'bg', name: 'lake' }, { t: 'music', name: 'cicada' },
+  { text: '回宿舍的路上要绕过湖边。十一月的湖面像一块被揉过的旧铝箔。' },
+  { text: '她在木栈道上停下来，从书包里拿出一张折成小方块的纸，一点点展开。' },
+  { text: '风把纸角吹起来，露出一行小字：十二月十五日 · 复核。' },
+  { t: 'sprite', e: 'solemn' },
+  { s: '龙潜', t: '跟你说个事。' },
+  { s: '龙潜', t: '省城的医院，给我排了一个评估，在十二月中旬。' },
+  { s: '龙潜', t: '如果评估通过，就要植入。手术加恢复，加上后面的训练，最少要小半年。' },
+  { s: '{name}', t: '这是好事。' },
+  { s: '龙潜', t: '是好事。' },
+  { s: '龙潜', t: '但毕业作品的评审，也在十二月中旬。' },
+  { text: '她把纸折回去，折得很齐。' },
+  { s: '龙潜', t: '我要交一个完整的作品，才有资格谈保研和留校。' },
+  { s: '龙潜', t: '留校意味着我还能继续修复那三百四十一句。' },
+  { s: '龙潜', t: '可如果我去了省城，这个冬天就做不完。' },
+  { s: '龙潜', t: '如果我不去——明年春天，也许有些频率就回不来了。' },
+  { text: '湖面上有一群野鸭被什么惊动了，扑棱棱地飞起来，又落回去。' },
+  { s: '龙潜', t: '……你说，我要不要把节目放弃掉。' },
+  { text: '她把手插进袖子，转过身来看我。眼镜片上有两小块天光。' },
+  { s: '龙潜', t: '我算了很久。留下，还是走。' },
+  { s: '龙潜', t: '我把两件事都写在笔记本最后一页，写了一个月，还是没结论。' },
+  { s: '龙潜', t: '所以今天拿出来问你——因为你是外人，你说的话我不用照顾自己。' },
+  { s: '龙潜', t: '我算了很久。留下，还是走。' },
+  { s: '龙潜', t: '我把两件事都写在笔记本最后一页，写了一个月，还是没结论。' },
+  { s: '龙潜', t: '所以今天拿出来问你——因为你是外人，你说的话我不用照顾自己。' },
+
+  { t: 'choice', options: [
+    { text: '“做完它。我陪你到最后一天。”', tag: '第 2 章 · 做到最后', love: 1, mem: '陪到最后', set: { c_finish: 1 }, goto: 'c_finish' },
+    { text: '“先去治耳朵。节目可以留到明年。”', tag: '第 2 章 · 明年再做', love: 0.5, mem: '明年的约定', set: { c_cure: 1 }, goto: 'c_cure' },
+    { text: '“你自己决定。我不劝你。”', tag: '第 2 章 · 不劝', love: -1, mem: '她眼里的雪', set: { c_none: 1 }, goto: 'c_none' }
+  ] },
+
+  { t: 'label', label: 'c_finish' },
+  { t: 'sprite', e: 'serious' },
+  { s: '{name}', t: '做完它。我陪你到最后一天。' },
+  { s: '{name}', t: '你不是要一份完整的谢幕吗？那就把谢幕做完。' },
+  { s: '{name}', t: '评估往后推一个月，我陪你去。节目交出去那天，我送你上车。' },
+  { text: '她看着我，很久没有说话。' },
+  { t: 'sprite', e: 'solemn' },
+  { s: '龙潜', t: '……你这个人，说话真的很像在念施工图。' },
+  { s: '龙潜', t: '但是奇怪，我听得特别清楚。' },
+  { text: '她把手从袖子里拿出来，在风里握了一下，又放开。' },
+  { t: 'mem', s: '陪到最后' },
+  { t: 'jump', target: 'c_after' },
+
+  { t: 'label', label: 'c_cure' },
+  { t: 'sprite', e: 'calm' },
+  { s: '{name}', t: '先去治耳朵。节目可以留到明年。' },
+  { s: '{name}', t: '三百四十一句已经在架子上放了三十年，不差这一个冬天。' },
+  { text: '她低头看着自己的鞋尖，点了点头。' },
+  { t: 'sprite', e: 'troubled' },
+  { s: '龙潜', t: '……对啊。你说得对。' },
+  { s: '龙潜', t: '只是留到明年，广播台就不在了。到时候，我大概只能抱着一个硬盘做这件事。' },
+  { s: '龙潜', t: '不过，硬盘也能存东西。' },
+  { text: '她笑了一下，那个笑没有到达眼睛。' },
+  { t: 'mem', s: '明年的约定' },
+  { t: 'jump', target: 'c_after' },
+
+  { t: 'label', label: 'c_none' },
+  { text: '我说，你自己决定，我不劝你。' },
+  { text: '风把这句话吹得很干。' },
+  { t: 'sprite', e: 'troubled' },
+  { s: '龙潜', t: '……嗯。谢谢。' },
+  { s: '龙潜', t: '你总是这样。把选择留在原地，让它自己长大。' },
+  { text: '我知道她在说九月的图书馆。' },
+  { text: '那一晚她走得比我快。栈道尽头的路灯把她的影子拉得很长，长到看见的人都会以为她在犹豫。' },
+  { t: 'mem', s: '她眼里的雪' },
+  { t: 'jump', target: 'c_after' },
+
+  { t: 'label', label: 'c_after' },
+  { t: 'bg', name: 'canteen' }, { t: 'music', name: 'gold' }, { t: 'sfx', name: 'page' },
+  { text: '第二天中午，食堂三楼，靠窗那张桌子。' },
+  { text: '她先到，桌上摆着两个餐盘——一份饭，一份面，还有一碟小菜。' },
+  { text: '我坐下的时候，她正把右耳上一个小小的东西摘下来，很小心地放进书包内侧的夹袋里。' },
+  { t: 'cg', name: 'food' },
+  { t: 'sprite', e: 'calm' },
+  { s: '龙潜', t: '今天这里太吵了。' },
+  { s: '龙潜', t: '而且——我想试试。' },
+  { text: '她抬起头，看着我的嘴。' },
+  { s: '龙潜', t: '你慢慢说。我看得懂口型。' },
+  { text: '食堂里一千个人在说话。炒锅的铁铲在敲，有人喊“加饭”，有人在笑。' },
+  { text: '而我说得很慢。慢到每一个字都要在空气里站一会儿才往前走。' },
+  { s: '{name}', t: '这……碗……面……比……上次……辣。' },
+  { t: 'sprite', e: 'smile' },
+  { text: '她笑出声来，笑得肩膀在抖。' },
+  { s: '龙潜', t: '我读到了。你说话的节奏，像在念一张施工图。' },
+  { s: '{name}', t: '我……今天……' },
+  { s: '{name}', t: '……' },
+  { text: '我想说的其实是很多别的话。' },
+  { text: '比如你的耳返别再自己一个人扛；比如磁带我学会了，你明天可以晚半小时到；' },
+  { text: '比如你右耳的助听器，其实我早就看见了。' },
+  { text: '但我只说了一件最没用的事：' },
+  { s: '{name}', t: '下……雪……的话……我……带……伞。' },
+  { text: '她愣了一下。' },
+  { t: 'sprite', e: 'solemn' },
+  { text: '然后她伸出右手，掌心朝上，放在桌子中间。' },
+  { text: '很轻，很慢，像在桌上放下一枚校徽。' },
+  { text: '我把手放上去。' },
+  { text: '四根手指，隔着一层薄薄的、被热水汽熏得有点暖的空气，碰在一起。' },
+  { text: '只碰了三秒。三秒之后，她把手收回去，端起碗喝了一口汤。' },
+  { t: 'cgEnd' },
+  { t: 'sprite', e: 'calm' },
+  { s: '龙潜', t: '……汤要凉了。' },
+  { t: 'set', k: 'held_hands', v: 1, love: 1, mem: '桌上的三秒' },
+
+  { t: 'bg', name: 'dorm' }, { t: 'music', name: 'cicada' },
+  { text: '那之后的一个星期，我开始一个人留守到广播台关门。' },
+  { text: '有一晚她先走了，我在她摊了一桌的资料里，看见一张夹在笔记本中间的纸。' },
+  { text: '《听力评估报告》——右耳高频段损失，建议尽早干预。' },
+  { text: '日期是去年的十一月。' },
+  { text: '纸角被反复捏过，凹下去一小块。' },
+  { text: '我把纸照原样夹回去，关灯，锁门。' },
+  { text: '那晚风很大，走廊尽头的那盏灯一直闪。' },
+  { t: 'mem', s: '去年十一月' },
+
+  { t: 'bg', name: 'balcony' }, { t: 'music', name: 'cicada' },
+  { text: '宿舍阳台。楼下有人抱着吉他弹一首走调的歌，弹到一半被宿管喊停了。' },
+  { text: '我坐在马扎上，把白天那段波形图铺开在膝盖上。' },
+  { text: '一条线从左边升起来，升得很慢，在三分之二的地方断了一次，然后接着往上走。' },
+  { text: '我用铅笔在断口旁边写：1989，第一次。' },
+  { text: '那天回宿舍的路上，我第一次绕去操场，一个人坐在看台上听蝉。' },
+  { text: '听到最后，蝉停了。操场上只剩风声。' },
+  { text: '写完我发现，我在替一个还不认识的人记账。' },
+  { text: '——这大概就是记录这件事的坏处：你一旦开始记，就再也放不下了。' },
+  { t: 'jump', target: 'ch3_body' }
+];
+
+/* ===========================================================
+ *  script2.js —— 第 3 章《最后一次广播》+ 结局
+ * =========================================================== */
+var SCRIPT_2 = [
+  { t: 'label', label: 'ch3_body' },
+  { t: 'chapter', name: '第 3 章', sub: '最后一次广播' },
+  { t: 'bg', name: 'studio' }, { t: 'music', name: 'fix' }, { t: 'sfx', name: 'page' },
+  { text: '十二月。窗玻璃上开始有一层擦不掉的雾。' },
+  { text: '广播台的墙上贴了一张手写的倒计时：距离并台还有 21 天。' },
+  { text: '最后一盘磁带摊在桌上。十七处断口已经接好十六处，剩最后一截——那段缺了大约四十秒。' },
+  { text: '接好的地方在灯下看，像一条被缝过的旧伤疤，针脚很细。' },
+  { t: 'sprite', e: 'serious' },
+  { s: '龙潜', t: '你数一下。十七处，我缝了整整两个月。' },
+  { s: '{name}', t: '我数过了。第十六处到第十七处，隔了十九厘米。' },
+  { s: '龙潜', t: '……你真的会数。' },
+  { t: 'sprite', e: 'serious' },
+  { s: '龙潜', t: '缺的这四十秒，是那期的收尾。' },
+  { s: '龙潜', t: '主持人在里面说了一句约定，然后所有人一起喊了什么。喊的内容，物理上已经不存在了。' },
+  { s: '{name}', t: '那就补。' },
+  { s: '龙潜', t: '补不了。补上去的每一秒，都是我编的。' },
+  { t: 'sprite', e: 'solemn' },
+  { s: '龙潜', t: '我做了个决定。' },
+  { s: '龙潜', t: '这期节目，我不放录音了。我现场口述。' },
+  { s: '龙潜', t: '整期，三十分钟，我一个人对着麦克风，把三十年的留言讲一遍。' },
+  { s: '龙潜', t: '缺掉的那四十秒，就用我自己的话补。' },
+  { s: '{name}', t: '……那还是“修复”吗。' },
+  { s: '龙潜', t: '不是了。' },
+  { t: 'sprite', e: 'calm' },
+  { s: '龙潜', t: '但记录这件事，本来就不是把东西锁进柜子。' },
+  { s: '龙潜', t: '我记得住的，我来替它说；我记不住的，交给下一个听见的人。' },
+  { t: 'sprite', e: 'troubled' },
+  { s: '龙潜', t: '——只是有一件事，我想问你。' },
+  { s: '龙潜', t: '到时候，我要不要在最后，念出书里那行回答。' },
+  { s: '龙潜', t: '那张借书卡上的字，我留了两年。念出来，就等于告诉所有人，我在等一个回答。' },
+  { s: '龙潜', t: '是不是……太自私了。' },
+
+  { t: 'choice', options: [
+    { text: '“念。那是你自己留的问题，该由你自己收尾。”', tag: '第 3 章 · 念出来', love: 1, mem: '该由你收尾', set: { d_open: 1 }, goto: 'd_open' },
+    { text: '“别念。这是最后一期，别把它变成私事。”', tag: '第 3 章 · 别念', love: -0.5, mem: '没念出来的那行', set: { d_close: 1 }, goto: 'd_close' }
+  ] },
+
+  { t: 'label', label: 'd_open' },
+  { s: '{name}', t: '念。' },
+  { s: '{name}', t: '那是你自己留的问题，该由你自己收尾。' },
+  { s: '{name}', t: '何况——那不是私事。广播台这三十年，本来就是一群人在互相问问题。' },
+  { t: 'sprite', e: 'smile' },
+  { s: '龙潜', t: '……好。那我念。' },
+  { text: '她低下头，在一张便签上写了三个字，折好，塞进台本夹层。' },
+  { t: 'mem', s: '该由你收尾' },
+  { t: 'jump', target: 'd_poster' },
+
+  { t: 'label', label: 'd_close' },
+  { s: '{name}', t: '别念。这是最后一期，别把它变成私事。' },
+  { t: 'sprite', e: 'troubled' },
+  { s: '龙潜', t: '……也对。' },
+  { s: '龙潜', t: '三十年的东西，不该收在一个人的名片上。' },
+  { text: '她把便签撕了，撕成很小的片，扔进纸篓。' },
+  { text: '那天晚上她说话都很正常。正常到我知道，有一句话被永久地留在了卡片的背面。' },
+  { t: 'mem', s: '没念出来的那行' },
+  { t: 'jump', target: 'd_poster' },
+
+  { t: 'label', label: 'd_poster' },
+  { t: 'bg', name: 'road' }, { t: 'music', name: 'sun' }, { t: 'sfx', name: 'page' },
+  { text: '接下来三天，我们在校道上贴海报。' },
+  { text: '海报是我画的：一条从 1989 年走到今年的波形线，三十年的起伏。' },
+  { text: '最后一格留白，写着“12 月 20 日，小礼堂，最后一次广播。欢迎带耳朵来”。' },
+  { text: '贴到第三张的时候，布告栏前面站了一位老先生。' },
+  { text: '他看那张波形图看了很久，然后从口袋里摸出手机，对着我的二维码扫了一下。' },
+  { s: '一位老先生', t: '同学。这个“最后一期”，是广播台那个最后一期吗？' },
+  { s: '{name}', t: '是。12 月 20 日，小礼堂。' },
+  { s: '一位老先生', t: '1989 年那期，你们放不放？' },
+  { text: '我和她对视了一眼。' },
+  { t: 'sprite', e: 'serious' },
+  { s: '龙潜', t: '放。不过那一盘磁带断过，最后四十秒没有了。' },
+  { text: '老先生笑了。他从包里拿出一个旧铁盒，打开——里面是几张已经泛黄的纸。' },
+  { s: '一位老先生', t: '我那年是台里的技术员。这是当年的台本，你们要不要？' },
+  { s: '一位老先生', t: '最后那四十秒，主持人说：梧桐落叶的那天，我们回来听一遍。' },
+  { s: '一位老先生', t: '然后所有人一起喊：“落——叶——了——没——”' },
+  { text: '他说完这句，站在布告栏前面，像等一个人回答。' },
+  { text: '风吹过校道，梧桐叶哗地掉下来几片。' },
+  { t: 'sprite', e: 'solemn' },
+  { s: '龙潜', t: '……落了。' },
+  { s: '龙潜', t: '今年落得早。' },
+  { t: 'set', k: 'found_tape_end', v: 1, mem: '落叶了没' },
+
+  { t: 'bg', name: 'hall' }, { t: 'music', name: 'last' }, { t: 'sfx', name: 'page' },
+  { text: '12 月 20 日，傍晚五点四十。小礼堂。' },
+  { text: '木椅子摆了三百张，坐满，过道里还站着人。' },
+  { text: '有穿羽绒服的学弟学妹，有拎着保温杯的老师，还有七八个头发白了的人，坐在最后一排。' },
+  { t: 'sprite', e: 'serious' },
+  { s: '龙潜', t: '三、二、一——' },
+  { text: '她按下录音键。' },
+  { text: '小礼堂的窗外开始起风。红丝绒幕被吹得轻轻发响。' },
+  { t: 'lamp', on: 1 }, { t: 'sfx', name: 'record' },
+  { text: '然后，磁带机卡住了。' },
+  { t: 'fx', name: 'shake' },
+  { text: '转轴发出一种很干的、金属摩擦的声音，停在那里。' },
+  { text: '台下有人开始小声议论。技术老师从侧幕探进半个身子，比划着问要不要停。' },
+  { text: '她把手从放音键上收回来，摘掉了左边那只耳返。' },
+  { t: 'sprite', e: 'solemn' },
+  { s: '龙潜', t: '……不放了。' },
+  { s: '龙潜', t: '反正它也已经不完整了。' },
+  { text: '她把麦克风往自己那边拉近了一点。' },
+  { s: '龙潜', t: '各位晚上好。这里是校广播台，最后一次广播。' },
+  { s: '龙潜', t: '我是台长龙潜。今天这期，没有录音，没有配乐，只有我一个人。' },
+  { text: '礼堂安静下来。安静的效率高得让人害怕。' },
+  { s: '龙潜', t: '从 1989 年开始，每年毕业季，广播台会录一期《最后一期》。' },
+  { s: '龙潜', t: '到今年，一共三百四十一句告别。' },
+  { s: '龙潜', t: '三年前我入学那天，听见的是第二十分之一盘。它在最要紧的地方断了。' },
+  { s: '龙潜', t: '那一刻我在想：一台机器能记住一个夏天，多厉害。' },
+  { s: '龙潜', t: '后来我知道，记性最好的从来不是机器。' },
+  { s: '龙潜', t: '是坐在这里的人。是愿意留下来听的人。' },
+  { t: 'sprite', e: 'calm' },
+  { text: '她从台本夹层里，摸出了那张折好的便签。' },
+  { s: '龙潜', t: '这一盘磁带的最后四十秒，我们找回来了。' },
+  { s: '龙潜', t: '当年的主持人说：梧桐落叶的那天，我们回来听一遍。' },
+  { s: '龙潜', t: '然后所有人一起喊：' },
+  { s: '龙潜', t: '落——叶——了——没——' },
+  { text: '最后一排，那七八个头发白了的人，一起站了起来。' },
+  { s: '1989 年的台员们', t: '落了——' },
+  { text: '礼堂里的三百个人，跟着喊了一遍。' },
+  { text: '声音撞在木质椅背和红丝绒幕上，撞出很钝的回响。' },
+  { text: '声音撞在木质椅背和红丝绒幕布上，撞出很钝的回响。' },
+  { text: '我在侧幕后面站着，手里拿着那张画了半个月的波形图。' },
+  { text: '图上最后那格留白的位置，我一直没舍得画满。' },
+  { t: 'if', cond: 'flags.d_open', then: 'live_open' },
+  { t: 'jump', target: 'live_after' },
+  { t: 'label', label: 'live_open' },
+  { text: '——然后她低下头，把手里那张便签展开了。' },
+  { s: '龙潜', t: '还有一件私事。' },
+  { s: '龙潜', t: '三年前，我在一本 1997 年版的散文选里，夹了一张借书卡。' },
+  { s: '龙潜', t: '卡上写了一个问题：如果还来得及，你最想留下哪一句。' },
+  { s: '龙潜', t: '我留了两年，没有等到回答。' },
+  { s: '龙潜', t: '后来有一天，有人在那张卡片的背面，替我写了一句。' },
+  { text: '她把便签举起来，对着麦克风念。' },
+  { s: '龙潜', t: '“想把说出口太晚的那一句，先录下来。”' },
+  { text: '我站在侧幕后面，听见自己的字被这间礼堂念了出来，声音比我想象中稳。' },
+  { s: '龙潜', t: '写在背面的那个人今天也在。' },
+  { s: '龙潜', t: '谢谢你。你写得很难看，但我记住了。' },
+  { text: '台下笑了。有人鼓掌，有人起哄。' },
+  { text: '而我站在暗处，第一次觉得——原来被记住是一件这么吵的事。' },
+  { t: 'label', label: 'live_after' },
+  { t: 'lamp', on: 0 },
+  { s: '龙潜', t: '最后一次广播，到此结束。' },
+  { s: '龙潜', t: '磁带会旧，机器会停，房子会被并掉。' },
+  { s: '龙潜', t: '但只要还有人愿意替别人记着一句话，这间房间就不算关。' },
+  { s: '龙潜', t: '晚安。' },
+  { text: '她按下停止键。录音灯灭了。' },
+  { text: '一百二十八分钟。没有一个人提前离开。' },
+  { text: '礼堂里安静了整整五秒，然后掌声响起来，从第一排一直响到最后一排。' },
+  { text: '那七八位老先生没有鼓掌，他们只是站着，看着台上那台已经不转的机器。' },
+
+  { t: 'bg', name: 'roof' }, { t: 'music', name: 'cicada' }, { t: 'sfx', name: 'snow' },
+  { text: '散场之后，她没有回后台。' },
+  { text: '我在礼堂后门的天台上找到了她。她靠在女儿墙上，抱着那台修了两个月的磁带机。' },
+  { text: '天台上开始下雪了。今年的第一场，很小，落在铁栏杆上就化。' },
+  { t: 'sprite', e: 'solemn' },
+  { s: '龙潜', t: '你怎么找到我的。' },
+  { s: '{name}', t: '礼堂后面只有一部电梯。' },
+  { s: '龙潜', t: '……对。你记路线。' },
+  { text: '我把伞撑开，往她那边倾了一点。' },
+  { text: '雪落在伞面上，声音很轻，像有人在很远的地方擦磁头。' },
+  { t: 'sprite', e: 'troubled' },
+  { s: '龙潜', t: '评估的日子定了。一月九号。' },
+  { s: '龙潜', t: '医生说，做完之后，我得重新学怎么听。' },
+  { s: '龙潜', t: '重新听，意味着现在听到的所有声音都会变形一次。包括今天。' },
+  { s: '龙潜', t: '——包括你的。' },
+  { text: '她把磁带机抱得更紧了一点。' },
+  { s: '龙潜', t: '所以我想先问你一件事。' },
+  { text: '雪落在她的睫毛上，很快化掉。' },
+  { s: '龙潜', t: '如果有一天，我完全听不见了。' },
+  { s: '龙潜', t: '你会不会觉得我很麻烦。' },
+
+  { t: 'choice', options: [
+    { text: '“那我来当你的耳朵。你说的话，我一句都不落。”', tag: '第 3 章 · 当你的耳朵', love: 1, mem: '耳返', set: { d_ear: 1 }, goto: 'd_ear' },
+    { text: '“不会。你本来就不麻烦。”', tag: '第 3 章 · 不麻烦', love: 1, set: { d_simple: 1 }, goto: 'd_simple' },
+    { text: '不说话，把伞再往她那边倾一点。', tag: '第 3 章 · 半把伞', love: 0.5, mem: '半把伞', set: { d_umbrella: 1 }, goto: 'd_umbrella' }
+  ] },
+
+  { t: 'label', label: 'd_ear' },
+  { t: 'cg', name: 'snow' },
+  { t: 'sprite', e: 'serious' },
+  { s: '{name}', t: '那我来当你的耳朵。' },
+  { s: '{name}', t: '你说的话，我一句都不落。' },
+  { s: '{name}', t: '你听不见的那些蝉，我替你数着；你想留给谁的话，我替你记着。' },
+  { s: '{name}', t: '这不是照顾。这是分工。' },
+  { t: 'sprite', e: 'solemn' },
+  { text: '她看了我三秒，然后把怀里那台磁带机递过来，塞进我手里。' },
+  { s: '龙潜', t: '……那你先拿着。' },
+  { s: '龙潜', t: '这台机器归你了。它比我沉，别摔。' },
+  { text: '我接过机器。她的手指在机器外壳上多停了一瞬，才收回去。' },
+  { t: 'mem', s: '耳返' },
+  { t: 'jump', target: 'final_lake' },
+
+  { t: 'label', label: 'd_simple' },
+  { t: 'cg', name: 'snow' },
+  { t: 'sprite', e: 'calm' },
+  { s: '{name}', t: '不会。你本来就不麻烦。' },
+  { s: '龙潜', t: '……回答得太快了。' },
+  { s: '龙潜', t: '不过没关系。听见了，就够了。' },
+  { text: '她笑了一下，把伞往我这边推回来一点点，正好推成一人一半。' },
+  { t: 'jump', target: 'final_lake' },
+
+  { t: 'label', label: 'd_umbrella' },
+  { t: 'cg', name: 'snow' },
+  { text: '我没有说话。' },
+  { text: '我只是把伞再一次往她那边倾，倾到自己的右肩完全露在雪里。' },
+  { text: '她看见了，没有说什么，只是往我这边靠近了半步。' },
+  { text: '两个人的肩膀之间，最后只剩下不到一个拳头的距离。' },
+  { text: '雪落在我们中间那一个拳头的空气里，落得很慢。' },
+  { t: 'mem', s: '半把伞' },
+  { t: 'jump', target: 'final_lake' },
+
+  { t: 'label', label: 'final_lake' },
+  { t: 'cgEnd' },
+  { t: 'bg', name: 'lake' }, { t: 'music', name: 'gold' }, { t: 'sfx', name: 'page' },
+  { text: '一月的湖面结了薄冰。木栈道上的雪被扫到两边，堆成两条矮矮的墙。' },
+  { text: '她把那本 1997 年版的散文选带来了。' },
+  { t: 'sprite', e: 'calm' },
+  { s: '龙潜', t: '书还你。' },
+  { s: '龙潜', t: '里面那张借书卡，我在背面写满了。' },
+  { text: '我翻开卡片。' },
+  { text: '第一面是九月那行被描过很多遍的名字，和那个问题。' },
+  { text: '第二面是我的字，和下面新添的很多行小字。' },
+  { text: '“1989：落叶了没。”' },
+  { text: '“十一月的蝉，还剩一只。”' },
+  { text: '“食堂三楼，你说话很慢，但我听得很清楚。”' },
+  { text: '最后一行是：' },
+  { s: '卡片背面', t: '“如果有一天我完全听不见——请把这一句念给我听。”' },
+  { text: '我把卡片合上，抬头看她。' },
+  { t: 'route', cond: 'flags.a_go,flags.b_fix,flags.c_finish,flags.d_ear', then: 'end_true', else: 'end_normal' },
+  { t: 'jump', target: 'end_normal' },
+
+  /* ---------------- TRUE END ---------------- */
+  { t: 'label', label: 'end_true' },
+  { t: 'cg', name: 'autumn' }, { t: 'music', name: 'last' },
+  { text: '我把卡片夹回书里，然后做了这一年里最不建筑系的一件事。' },
+  { text: '我伸出手，握住了她的手。' },
+  { t: 'sprite', e: 'solemn' },
+  { text: '雪在她的手背上化成水。她没有抽回去。' },
+  { s: '{name}', t: '一月九号，我送你去车站。' },
+  { s: '{name}', t: '你出来以后要重新学听——那正好，我今年也没什么课。' },
+  { s: '{name}', t: '你想说的第一句话，我替你记着。等你听得见了，我再还给你。' },
+  { text: '她低头看着我们握在一起的手，很久。' },
+  { t: 'sprite', e: 'smile' },
+  { s: '龙潜', t: '……你这句话，我记住了。' },
+  { s: '龙潜', t: '记住的意思，就是以后你要是说得不一样，我会来找你的。' },
+  { text: '那年冬天，她做完手术，在省城待到春天。' },
+  { text: '我一个人把那三百四十一句全部转成了数字文件，做完分类，写好每一句的年份、说话人、时长。' },
+  { text: '广播台在三月并入新媒体中心。房间交出去之前，我把最后一段录音归档，编号 042。' },
+  { text: '第二年九月，梧桐又落了。' },
+  { text: '我毕业前把那张波形图装进了框子，挂在新媒体中心的资料室里。' },
+  { text: '每个进来借录音的人，都会问一句：这上面最后一格为什么留白？' },
+  { text: '我说：因为那一格要等一个人回来自己画。' },
+  { t: 'cgEnd' }, { t: 'bg', name: 'lib' }, { t: 'music', name: 'sun' },
+  { t: 'sprite', e: 'smile' },
+  { text: '图书馆四楼，靠窗第三张桌子。' },
+  { text: '她抱着新的采访机站在那里，头发短了一点，眼镜换成了同一款新的。' },
+  { s: '龙潜', t: '同学，这本《诗经》里夹了一张借书卡，是不是你的？' },
+  { s: '{name}', t: '不是。是我们要一起写的。' },
+  { text: '我走过去，在卡片背面写下第二个回答。' },
+  { text: '——那年秋天以后，我们约定：每年录一盘带子。' },
+  { text: '谁都不能替谁说话，但谁都可以替谁记得。' },
+  { t: 'ending', kind: 'true', title: '下一个秋天', sub: '“有些声音不会消失，它们只是换了一个人替它们记得。”', after: 'after_tips' },
+
+  /* ---------------- NORMAL END ---------------- */
+  { t: 'label', label: 'end_normal' },
+  { t: 'cg', name: 'autumn2' }, { t: 'music', name: 'cicada' },
+  { text: '我把卡片合上，还给她。' },
+  { t: 'sprite', e: 'calm' },
+  { s: '龙潜', t: '谢谢你陪我到这里。' },
+  { s: '龙潜', t: '剩下的路，我想自己听一听。' },
+  { text: '她把那本《中国现当代散文选读》还要递给我，又收回去，最后只把那一页借书卡抽出来，放在我掌心。' },
+  { text: '“书是图书馆的。卡片是我自己的。”她说，“这张就留给你。”' },
+  { text: '她把那台修了两个月的磁带机放进我的包里，说这算工钱。' },
+  { text: '雪停了。湖对岸的路灯一盏一盏亮起来，倒影在薄冰上排成很整齐的一列。' },
+  { text: '三月，广播台并进新媒体中心。她去了省城。' },
+  { text: '春天她来信，说手术做完了，重新学听的时候，第一个听清的是救护车经过的声音。' },
+  { text: '我把信读了三母。' },
+  { text: '信里夹着一盘空白带——只录了风声，和某个午后操场上很远的跑步声。' },
+  { text: '后来她转去特殊教育方向读研，偶尔给我发一句：“今天有人念了一段散文，我听见了后半句。”' },
+  { text: '我也毕业、离开、画图、加班，在通勤的耳机里，偶尔听见操场上的风。' },
+  { text: '那不是我们两个人的秋天。' },
+  { text: '但那个秋天，确实存在过。' },
+  { t: 'ending', kind: 'normal', title: '把磁带交给下一个秋天', sub: '“没有再并肩，可谁都没有把这一页撕掉。”', after: 'after_tips' },
+
+  { t: 'label', label: 'after_all' },
+  { t: 'bg', name: 'title' }, { t: 'music', name: 'gold' }, { t: 'cgEnd' }, { t: 'hide' },
+  { text: '——感谢你听到这里。' },
+  { text: '《长耳听见的那一年》 完。' },
+  { t: 'route', cond: 'flags.a_go,flags.b_fix,flags.c_finish,flags.d_ear', then: 'after_true', else: 'after_normal' },
+  { t: 'label', label: 'after_normal' },
+  { text: '你听完了 Normal End《把磁带交给下一个秋天》。' },
+  { text: '如果想让那句回答被完整地念出来，试试在四个关键选项里，都选择“留下”。' },
+  { t: 'jump', target: 'after_tips' },
+  { t: 'label', label: 'after_true' },
+  { text: '你听完了 True End《下一个秋天》。' },
+  { t: 'label', label: 'after_tips' },
+  { text: '音乐鉴赏已解锁全部曲目；CG 鉴赏里，还有一张是你没走到的分镜。' },
+  { text: '回到标题，可以重录这一期。' }
+];
+
+var META_MUSIC = [
+  { key: 'gold', name: '金线', desc: '主题曲 · 钢琴与单簧管 · 标题画面 / 序章' },
+  { key: 'sun', name: '四楼的斜光', desc: '日常 · 木吉他与钢片琴 · 图书馆 / 校道 / 食堂' },
+  { key: 'fix', name: '磁头与棉签', desc: '修复 · 低音拨奏与磁带嘶声 · 广播台' },
+  { key: 'cicada', name: '高频先走的蝉', desc: '独白 · 单簧管与雨声 · 操场 / 湖边 / 天台' },
+  { key: 'last', name: '最后一次广播', desc: '高潮 · 弦乐与电钢琴 · 小礼堂 / 结局' }
+];
+var META_CG = [
+  { key: 'seat', name: '空座位', desc: '序章 · 图书馆四楼' },
+  { key: 'rec', name: '三、二、一', desc: '第 1 章 · 广播台录音前' },
+  { key: 'food', name: '你慢慢说', desc: '第 2 章 · 食堂三楼靠窗' },
+  { key: 'snow', name: '雪落在天台上', desc: '第 3 章 · 第一场雪' },
+  { key: 'autumn', name: '下一个秋天', desc: 'True End' },
+  { key: 'autumn2', name: '把磁带交给下一个秋天', desc: 'Normal End' }
+];
+
+/* ===========================================================
+ *  engine.js —— 视觉小说引擎（对话 / 选项 / 存读档 / 鉴赏 / 回顾 / 自动跳过）
+ * =========================================================== */
+var Game = (function () {
+  var VERSION = 'save_v1';
+  var G = {
+    name: '江知远', chapter: '序章',
+    flags: {}, mem: [], love: 0,
+    idx: 0, owner: null, seen: {}, cgs: {}, mus: {}, choiceLog: [],
+    autoTimer: null, skipTimer: null, typing: false,
+    settings: { speed: 22, music: 0.5, sfx: 0.6, autoWait: 1500, effect: true },
+    playing: 'gold'
+  };
+  var BG = { bg: 'lib', sprite: null, cg: null, music: null, lamp: false, speaker: '', heroine: false };
+  var META = null;
+  var bgEl, spriteEl, cgEl, textEl, spkEl, nextEl, choiceEl, chapterEl, endingEl, hudEl, toastEl;
+  var typingTimer = null, fullText = '', typePos = 0, textDone = true, lineStart = 0;
+
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function applyName(s) {
+    return String(s).replace(/\{name\}/g, G.name).replace(/\{name1\}/g, G.name.charAt(0));
+  }
+
+  /* ---------------- 存档 ---------------- */
+  function store(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } }
+  function load(k) { try { var s = localStorage.getItem(k); return s ? JSON.parse(s) : null; } catch (e) { return null; } }
+  function snapshot(label) {
+    return {
+      v: VERSION, name: G.name, idx: G.idx, flags: JSON.parse(JSON.stringify(G.flags)),
+      mem: G.mem.slice(), love: G.love, chapter: G.chapter, ts: Date.now(),
+      label: label || (META.script[G.idx] && META.script[G.idx].s ? String(META.script[G.idx].s).slice(0, 14) : '')
+    };
+  }
+  function applySnapshot(s) {
+    G.name = s.name || G.name; G.idx = s.idx || 0; G.flags = s.flags || {}; G.mem = s.mem || []; G.love = s.love || 0;
+    G.chapter = s.chapter || '序章';
+    renderFromScratch();
+  }
+  function autoSave() { store(VERSION + '_auto', snapshot('自动存档')); }
+  function saveSlot(i) { store(VERSION + '_s' + i, snapshot()); }
+  function loadSlot(i) { var s = load(VERSION + '_s' + i); return s; }
+  function lastSave() { return load(VERSION + '_auto') || load(VERSION + '_quick') || null; }
+
+  /* ---------------- 条件 ---------------- */
+  function cond(c) {
+    if (!c) return true;
+    if (typeof c === 'function') return !!c(G);
+    // 注意：内联 script 里 '&' 可能被 HTML 解析转义，所以条件用逗号分隔的 AND 列表
+    c = String(c).replace(/&amp;/g, '&').replace(/s*&&s*/g, ',');
+    return c.split(',').every(function (one) {
+      one = one.trim();
+      var m;
+      if ((m = /^flags\.(\w+)$/.exec(one))) return !!G.flags[m[1]];
+      if ((m = /^!flags\.(\w+)$/.exec(one))) return !G.flags[m[1]];
+      if ((m = /^love>=(-?\d+)$/.exec(one))) return G.love >= parseInt(m[1], 10);
+      if ((m = /^mem>=(\d+)$/.exec(one))) return G.mem.length >= parseInt(m[1], 10);
+      if ((m = /^has:(.+)$/.exec(one))) return G.mem.indexOf(m[1]) >= 0;
+      return true;
+    });
+  }
+  var LABELS = null;
+  function buildLabels() {
+    LABELS = {};
+    for (var i = 0; i < META.script.length; i++) {
+      var n = META.script[i];
+      if (n && n.t === 'label' && n.label && LABELS[n.label] === undefined) LABELS[n.label] = i;
+    }
+  }
+  function labelIndex(name) {
+    if (!LABELS) buildLabels();
+    return LABELS[name] === undefined ? -1 : LABELS[name];
+  }
+
+  /* ---------------- 渲染 ---------------- */
+  function setBG(bg, opt) {
+    if (!bg || BG.bg === bg) return;
+    BG.bg = bg;
+    var svg = ARTWORK.get(bg);
+    bgEl.innerHTML = svg;
+    if (G.settings.effect) {
+      bgEl.animate ? bgEl.animate([{ opacity: 0, transform: 'scale(1.04)' }, { opacity: 1, transform: 'scale(1)' }], { duration: 700, easing: 'ease-out' }) : 0;
+    }
+  }
+  function setSprite(expr, opt) {
+    opt = opt || {};
+    if (!expr) { spriteEl.innerHTML = ''; BG.sprite = null; return; }
+    var key = expr + (opt.mirror ? 'm' : '');
+    if (BG.sprite === key) return;
+    BG.sprite = key;
+    spriteEl.innerHTML = '<div class="sprite">' + ARTWORK.spriteSVG(expr, opt.mirror) + '</div>';
+    spriteEl.classList.remove('out');
+  }
+  function setCG(key, opt) {
+    if (!key) { cgEl.innerHTML = ''; cgEl.style.display = 'none'; BG.cg = null; return; }
+    BG.cg = key; G.cgs[key] = 1; store(VERSION + '_cg', G.cgs);
+    cgEl.style.display = 'block';
+    cgEl.innerHTML = '<div class="cg-wrap">' + ARTWORK.get(key) + '</div>';
+    cgEl.style.opacity = 0;
+    requestAnimationFrame(function () { cgEl.style.transition = 'opacity .8s'; cgEl.style.opacity = 1; });
+    spriteEl.innerHTML = ''; BG.sprite = null;
+  }
+  function setMusic(name) {
+    if (!name || BG.music === name) return;
+    BG.music = name; G.mus[name] = 1; store(VERSION + '_mus', G.mus);
+    SOUND.play(name);
+    G.playing = name;
+  }
+  function lamp(on) {
+    BG.lamp = on;
+    $('tape-lamp').classList.toggle('on', !!on);
+  }
+  function toast(msg) {
+    toastEl.textContent = msg; toastEl.classList.add('on');
+    clearTimeout(toastEl._t); toastEl._t = setTimeout(function () { toastEl.classList.remove('on'); }, 1500);
+  }
+
+  /* ---------------- 打字机 ---------------- */
+  function typeWrite(s) {
+    fullText = applyName(s);
+    typePos = 0; textDone = false;
+    lineStart = Date.now();
+    nextEl.classList.remove('on');
+    textEl.textContent = '';
+    clearInterval(typingTimer);
+    var speed = G.settings.speed;
+    if (speed <= 0) { finishText(); return; }
+    typingTimer = setInterval(function () {
+      typePos += Math.min(2, fullText.length - typePos);
+      textEl.textContent = fullText.slice(0, typePos);
+      if (typePos >= fullText.length) finishText();
+    }, speed);
+    // 看门狗：任何异常导致打字停摆时，1.2 秒后强制补全，绝不让玩家卡在"文字不动"
+    if (G._wd) clearTimeout(G._wd);
+    G._wd = setTimeout(function () { if (!textDone) finishText(); }, 1200 + fullText.length * speed * 0.6);
+  }
+  function finishText() {
+    clearInterval(typingTimer);
+    textEl.textContent = fullText;
+    textDone = true;
+    if (speedZero()) { }
+    nextEl.classList.add('on');
+  }
+  function speedZero() { return G.settings.speed <= 0; }
+
+  /* ---------------- 主循环 ---------------- */
+  function run() {
+    try {
+      // 推进环看门狗：同一节点短时间内被反复到达，强制往后走，保证任何情况下都能继续
+      var now = Date.now();
+      if (G.__lastIdx === G.idx) {
+        if (now - (G.__lastAt || 0) > 650) {
+          if (G.__loopCount === undefined) G.__loopCount = 0;
+          G.__loopCount++;
+          if (G.__loopCount > 2) { G.__loopCount = 0; G.idx++; }
+          G.__lastAt = now;
+        }
+      } else { G.__lastIdx = G.idx; G.__lastAt = now; G.__loopCount = 0; }
+      runInner();
+    } catch (e) {
+      // 任何异常都不能让剧情停住：记录后强制推进一格
+      if (window.console && console.warn) console.warn('[galgame] run() 异常，已强制推进：', e);
+      G.idx++;
+    }
+  }
+  function runInner() {
+    if (G.endingLock) return; // 结局卡播放期间冻结流程，避免两次 run 竞态穿透到另一个结局
+    clearTimeout(G.autoTimer);
+    var guard = 0;
+    while (guard++ < 20000) {
+      if (G.idx >= META.script.length) {
+        // 剧本播完：回到标题，给出明确提示
+        toast('这一期播完了。回到标题可以重录。');
+        showScreen('title-screen');
+        return;
+      }
+      if (G.idx < 0) G.idx = 0;
+      var n = META.script[G.idx];
+      if (typeof n === 'string') { G.idx++; continue; }
+      var next = false;
+      switch (n.t) {
+        case 'label': G.idx++; next = true; break;
+        case 'chapter':
+          G.chapter = n.name;
+          showChapter(n.name, n.sub, function () { G.idx++; run(); });
+          return;
+        case 'bg': setBG(n.name); G.idx++; next = true; break;
+        case 'sprite': setSprite(n.e, { mirror: n.mirror }); G.idx++; next = true; break;
+        case 'hide': setSprite(null); G.idx++; next = true; break;
+        case 'cg': setCG(n.name); G.idx++; next = true; break;
+        case 'cgEnd': setCG(null); G.idx++; next = true; break;
+        case 'music': setMusic(n.name); G.idx++; next = true; break;
+        case 'lamp': lamp(n.on); G.idx++; next = true; break;
+        case 'sfx': SOUND.sfx(n.name); G.idx++; next = true; break;
+        case 'fx': if (n.name === 'shake' && G.settings.effect) { document.getElementById('app').animate([{ transform: 'translate(0,0)' }, { transform: 'translate(-7px,4px)' }, { transform: 'translate(6px,-3px)' }, { transform: 'translate(0,0)' }], { duration: 420 }); } G.idx++; next = true; break;
+        case 'set': G.flags[n.k] = (n.v === undefined ? 1 : n.v); if (n.love) G.love += n.love; if (n.mem && G.mem.indexOf(n.mem) < 0) G.mem.push(n.mem); G.idx++; next = true; break;
+        case 'mem': if (G.mem.indexOf(n.s) < 0) G.mem.push(n.s); G.idx++; next = true; break;
+        case 'jump':
+          var ti = labelIndex(n.target || n.label);
+          if (ti < 0) { console.warn('missing label', n.label); G.idx++; } else G.idx = ti;
+          next = true; break;
+        case 'if':
+        case 'route':
+          var tIdx = labelIndex(cond(n.cond) ? n.then : n.else);
+          G.idx = tIdx >= 0 ? tIdx : G.idx + 1;
+          next = true; break;
+        case 'ending':
+          showEnding(n.kind, n.title, n.sub, n.after);
+          return;
+        case 'choice':
+          showChoice(n); return;
+        case 'say':
+        default:
+          if (n.t === 'say' || n.speak !== undefined || n.text !== undefined) {
+            var who = n.who === undefined ? (n.t === 'say' ? '' : '') : n.who;
+            var isH = who === 'longer' || who === '她';
+            spkEl.className = 'speaker' + (who ? (isH ? ' heroine' : '') : ' narr');
+            if (!who) { spkEl.className = 'speaker empty'; spkEl.textContent = ''; }
+            else spkEl.textContent = who === 'longer' ? (n.label2 || 'longer') : who;
+            G.seen[G.idx] = 1;
+            G.history = G.history || [];
+            G.history.push({ s: who, x: applyName(n.text || ''), c: G.chapter });
+            if (G.history.length > 400) G.history.shift();
+            typeWrite(n.text || '');
+            autoSave();
+            if (G.skipOn && G.seen[G.idx]) { G.skipTimer = setTimeout(function () { if (G.skipOn) { finishText(); click(); } }, 26); }
+            else if (G.autoOn) {
+              var dur = Math.min(9000, 900 + (n.text || '').length * (G.settings.speed + 42));
+              G.autoTimer = setTimeout(function () { if (G.autoOn) click(); }, dur + G.settings.autoWait);
+            }
+            return;
+          }
+          G.idx++; next = true;
+      }
+      if (!next) return;
+    }
+  }
+  function click() {
+    G.clicks = (G.clicks || 0) + 1;
+    try { SOUND.resume(); } catch (e) { }
+    if (chapterEl.classList.contains('on')) { if (G.chapterDismiss) G.chapterDismiss(); return; }
+    if (!textDone) {
+      finishText();
+      // 这一句已经显示了足够久，说明玩家是在"往下读"，同一次点击直接推进
+      if (Date.now() - lineStart > 90) { /* 继续往下走 */ } else { return; }
+    }
+    if (choiceEl.classList.contains('on')) return;
+    if (endingEl.classList.contains('on')) return;
+    try { SOUND.sfx('click'); } catch (e) { }
+    G.idx++; run();
+  }
+
+  function showChoice(n) {
+    choiceEl.innerHTML = '';
+    var opts = n.options.filter(function (o) { return cond(o.cond); });
+    opts.forEach(function (o, i) {
+      var b = document.createElement('div');
+      b.className = 'choice';
+      b.innerHTML = (o.tag ? '<span class="tag">' + esc(o.tag) + '</span>' : '') + esc(applyName(o.text));
+      b.onclick = function () {
+        SOUND.sfx('select');
+        choiceEl.classList.remove('on'); choiceEl.innerHTML = '';
+        if (o.set) { for (var k in o.set) G.flags[k] = o.set[k]; }
+        if (o.love) G.love += o.love;
+        if (o.mem && G.mem.indexOf(o.mem) < 0) G.mem.push(o.mem);
+        G.choiceLog.push({ c: G.chapter, text: o.text, at: Date.now() });
+        var ti = labelIndex(o.goto);
+        if (ti < 0) { console.warn('bad goto ' + o.goto); G.idx++; } else G.idx = ti;
+        autoSave();
+        run();
+      };
+      choiceEl.appendChild(b);
+    });
+    choiceEl.classList.add('on');
+  }
+
+  function showChapter(name, sub, cb) {
+    if (!G.settings.effect) { cb(); return; }
+    chapterEl.innerHTML = '<div class="cc-k">CHAPTER</div><div class="cc-t">' + esc(name) + '</div>' +
+      (sub ? '<div class="cc-s">' + esc(sub) + '</div>' : '') +
+      '<div class="cc-hint">点击任意处继续</div>';
+    chapterEl.classList.add('on');
+    var fired = false, started = Date.now();
+    function done() {
+      if (fired) return; fired = true;
+      clearTimeout(t1);
+      chapterEl.classList.remove('on');
+      setTimeout(cb, 320);
+    }
+    var t1 = setTimeout(done, 1900);
+    // 点击章节卡立即进入正文（至少要显示 350ms，避免误触）
+    G.chapterDismiss = function () { if (Date.now() - started > 350) { done(); return true; } return false; };
+  }
+  function showEnding(kind, title, sub, after) {
+    G.endingLock = true;
+    endingEl.innerHTML = '<div class="e-k">' + (kind === 'true' ? 'TRUE END' : 'NORMAL END') + '</div>' +
+      '<div class="e-t">' + esc(title) + '</div><div class="e-s">' + esc(sub) + '</div>';
+    endingEl.classList.add('on');
+    endingEl.style.pointerEvents = 'auto';
+    G.ending = kind;
+    store(VERSION + '_end_' + kind, { ts: Date.now(), name: G.name, love: G.love, mem: G.mem.slice(), choices: G.choiceLog });
+    setTimeout(function () {
+      endingEl.classList.remove('on');
+      endingEl.style.pointerEvents = '';
+      setTimeout(function () {
+        var ti = after ? labelIndex(after) : -1;
+        G.idx = ti >= 0 ? ti : G.idx + 1;
+        G.endingLock = false;
+        run();
+      }, 1400);
+    }, 5200 + (after ? 0 : 0));
+  }
+
+  /* ---------------- 弹层 ---------------- */
+  function modal(title, html) {
+    $('modal-head').innerHTML = '<span>' + esc(title) + '</span><button class="cls">关闭</button>';
+    $('modal-body').innerHTML = html;
+    $('modal').classList.add('on');
+    $('modal-head').querySelector('.cls').onclick = function () { SOUND.sfx('back'); closeModal(); };
+  }
+  function closeModal() { $('modal').classList.remove('on'); }
+
+  function openGallery() {
+    var list = (META.cglist || []);
+    var h = '<div class="m-row">';
+    list.forEach(function (c) {
+      var got = !!G.cgs[c.key];
+      h += '<div class="m-card' + (got ? '' : ' locked') + '" data-cg="' + c.key + '">' +
+        '<div class="thumb' + (got ? '' : ' locked') + '">' + ARTWORK.get(c.key) + '</div>' +
+        '<div class="cap">' + esc(got ? c.name : '？？？') + '<small>' + esc(c.desc || '') + '</small></div></div>';
+    });
+    h += '</div>';
+    modal('CG 鉴赏 ' + Object.keys(G.cgs).length + ' / ' + list.length, h);
+    Array.prototype.forEach.call($('modal-body').querySelectorAll('[data-cg]'), function (el) {
+      el.onclick = function () {
+        var k = el.getAttribute('data-cg');
+        if (!G.cgs[k]) { toast('这段录音还没有被翻出来'); return; }
+        SOUND.sfx('select');
+        var big = document.createElement('div');
+        big.style.cssText = 'position:absolute;inset:0;background:rgba(8,8,10,.94);z-index:70;display:flex;align-items:center;justify-content:center';
+        big.innerHTML = '<div style="width:92vw;height:86vh">' + ARTWORK.get(k) + '</div>';
+        big.onclick = function () { big.remove(); };
+        document.getElementById('app').appendChild(big);
+      };
+    });
+  }
+  function openMusic() {
+    var list = META.musiclist || [];
+    var h = '';
+    list.forEach(function (m) {
+      var got = !!G.mus[m.key] || m.key === 'gold';
+      h += '<div class="m-track' + (G.playing === m.key ? ' playing' : '') + '" data-m="' + m.key + '" data-lock="' + (got ? 0 : 1) + '">' +
+        '<div><div class="tt"><span class="eq">♪</span> ' + esc(got ? m.name : '？？？') + '</div><div class="td">' + esc(m.desc || '') + '</div></div>' +
+        '<div class="tp">' + (got ? (G.playing === m.key ? '正在播放' : '播放') : '未解锁') + '</div></div>';
+    });
+    modal('音乐鉴赏', h);
+    Array.prototype.forEach.call($('modal-body').querySelectorAll('[data-m]'), function (el) {
+      el.onclick = function () {
+        if (el.getAttribute('data-lock') === '1') { toast('听到之后才能收录'); return; }
+        var k = el.getAttribute('data-m');
+        BG.music = null; setMusic(k); G.playing = k;
+        SOUND.sfx('select');
+        openMusic();
+      };
+    });
+  }
+  function openLog() {
+    var h = '<div class="hist">';
+    (G.history || []).slice(-220).forEach(function (e) {
+      var cls = e.s === 'longer' ? 'hz' : (e.s ? '' : 'nr');
+      h += '<div class="hi ' + cls + '">' + (e.s ? '<b>' + esc(e.s === 'longer' ? 'longer' : e.s) + '</b>' : '') + esc(e.x) + '</div>';
+    });
+    h += '</div>';
+    modal('历史回顾', h);
+    var b = $('modal-body'); b.scrollTop = b.scrollHeight;
+  }
+  function openSave(mode) {
+    var h = '';
+    for (var i = 1; i <= 5; i++) {
+      var s = loadSlot(i);
+      var head = s ? (s.chapter + ' · ' + (s.label || '')) : '空';
+      var ti = s ? new Date(s.ts).toLocaleString('zh-CN') : '';
+      h += '<div class="slot"><div><div class="sn">第 ' + i + ' 槽 · ' + esc(head) + '</div><div class="si">' + esc(ti) + '</div></div>' +
+        '<div>' + (mode === 'save' ? '<button data-save="' + i + '">存档</button>' : '') +
+        '<button data-load="' + i + '"' + (s ? '' : ' disabled') + '>读档</button>' +
+        '<button data-del="' + i + '"' + (s ? '' : ' disabled') + '>删除</button></div></div>';
+    }
+    modal(mode === 'save' ? '存档' : '读档', h);
+    var body = $('modal-body');
+    Array.prototype.forEach.call(body.querySelectorAll('button'), function (b) {
+      b.onclick = function () {
+        var i = parseInt(b.getAttribute('data-save') || b.getAttribute('data-load') || b.getAttribute('data-del'), 10);
+        if (b.hasAttribute('data-save')) { saveSlot(i); SOUND.sfx('select'); toast('已存档：第 ' + i + ' 槽'); openSave('save'); }
+        else if (b.hasAttribute('data-load')) { var s = loadSlot(i); if (s) { SOUND.sfx('select'); closeModal(); applySnapshot(s); toast('已读取：第 ' + i + ' 槽'); } }
+        else { localStorage.removeItem(VERSION + '_s' + i); SOUND.sfx('back'); openSave(mode); }
+      };
+    });
+  }
+  function openConfig() {
+    var s = G.settings;
+    var h = '<div class="set-row"><label>文字速度</label><input type="range" id="cfg-speed" min="0" max="90" step="2" value="' + s.speed + '"/><span class="val" id="v-speed">' + (s.speed <= 0 ? '瞬间' : s.speed + 'ms') + '</span></div>' +
+      '<div class="set-row"><label>音乐音量</label><input type="range" id="cfg-music" min="0" max="100" value="' + Math.round(s.music * 100) + '"/><span class="val" id="v-music">' + Math.round(s.music * 100) + '</span></div>' +
+      '<div class="set-row"><label>音效音量</label><input type="range" id="cfg-sfx" min="0" max="100" value="' + Math.round(s.sfx * 100) + '"/><span class="val" id="v-sfx">' + Math.round(s.sfx * 100) + '</span></div>' +
+      '<div class="set-row"><label>演出特效</label><input type="checkbox" id="cfg-fx" ' + (s.effect ? 'checked' : '') + '/><span class="val"></span></div>' +
+      '<div class="set-row"><label>自动播放间隔</label><input type="range" id="cfg-auto" min="400" max="4000" step="200" value="' + s.autoWait + '"/><span class="val" id="v-auto">' + s.autoWait + 'ms</span></div>';
+    modal('设置', h);
+    function bind(id, fn, vid, fmt) {
+      var el = $(id); if (!el) return;
+      el.oninput = el.onchange = function () { fn(el); if (vid) $(vid).textContent = fmt(el); };
+    }
+    bind('cfg-speed', function (el) { s.speed = parseInt(el.value, 10); }, 'v-speed', function (el) { return parseInt(el.value, 10) <= 0 ? '瞬间' : el.value + 'ms'; });
+    bind('cfg-music', function (el) { s.music = parseInt(el.value, 10) / 100; SOUND.setMusicVol(s.music); }, 'v-music', function (el) { return el.value; });
+    bind('cfg-sfx', function (el) { s.sfx = parseInt(el.value, 10) / 100; SOUND.setSfxVol(s.sfx); }, 'v-sfx', function (el) { return el.value; });
+    bind('cfg-auto', function (el) { s.autoWait = parseInt(el.value, 10); }, 'v-auto', function (el) { return el.value + 'ms'; });
+    var fx = $('cfg-fx'); if (fx) fx.onchange = function () { s.effect = fx.checked; };
+    persistSettings();
+  }
+  function persistSettings() { store(VERSION + '_cfg', G.settings); }
+  function openHelp() {
+    modal('关于 / 操作', '<div class="help">' +
+      '<h4>操作</h4>' +
+      '<p>鼠标左键 / 空格 / 回车：推进对话 · 打字中点击＝立即显示全部</p>' +
+      '<p>Ctrl（按住）：跳过已读 · A：自动播放 · H：历史回顾 · Esc：设置</p>' +
+      '<p>存档为 5 槽手动 + 1 自动，进度实时写入浏览器本地存储。</p>' +
+      '<h4>玩法</h4>' +
+      '<p>本作共 4 个关键选项，只影响「好感」「记忆碎片」与 True Flag，不改变单线框架。' +
+      'True End《下一个秋天》需要四个关键选项全部选对；否则进入 Normal End《把磁带交给下一个秋天》。</p>' +
+      '<h4>主题</h4>' +
+      '<p>全年龄 · 单女主 · 无后宫 · 无三角恋 · 场景限定在中国大学校园内。</p>' +
+      '<h4>构成</h4>' +
+      '<p>全部立绘、场景、CG 由程序化水彩 SVG 现场绘制；全部 BGM 由 WebAudio 实时合成。无任何外部素材文件。</p>' +
+      '</div>');
+  }
+
+  // 渲染"当前所在节点"（用于开局 / 读档后，避免文本框空白）
+  function renderCurrentNode() {
+    var n = META.script[G.idx];
+    if (!n || typeof n === 'string') return;
+    if (n.text !== undefined) {
+      var who = n.s || '';
+      var isH = who === 'longer' || who === '她';
+      spkEl.className = 'speaker' + (who ? (isH ? ' heroine' : '') : ' narr');
+      if (!who) { spkEl.className = 'speaker empty'; spkEl.textContent = ''; }
+      else spkEl.textContent = who === 'longer' ? 'longer' : who;
+      typeWrite(n.text);
+    }
+  }
+
+  /* ---------------- 从剧本重建画面 ---------------- */
+  function renderFromScratch() {
+    // 从当前位置向前回溯，恢复 bg / sprite / music / lamp
+    BG.bg = null; BG.sprite = null; BG.music = null;
+    setCG(null);
+    spriteEl.innerHTML = '';
+    var bg = null, spr = null, mus = null, lampOn = false, mirror = false, i, n;
+    // 背景从当前节点往回找（BGM 早期设定，背景常常中途切换）
+    for (i = Math.min(G.idx, META.script.length - 1); i >= 0; i--) {
+      n = META.script[i]; if (typeof n === 'string') continue;
+      if (n.t === 'bg') { bg = n.name; break; }
+    }
+    // 立绘 / 音乐 / 录音灯 从头顺序还原
+    for (i = 0; i <= G.idx && i < META.script.length; i++) {
+      n = META.script[i]; if (typeof n === 'string') continue;
+      if (n.t === 'cg' || n.t === 'cgEnd') { spr = spr; }
+      if (n.t === 'sprite') { spr = n.e; mirror = !!n.mirror; }
+      else if (n.t === 'hide') spr = null;
+      else if (n.t === 'music') mus = n.name;
+      else if (n.t === 'lamp') lampOn = !!n.on;
+    }
+    setBG(bg);
+    setSprite(spr, { mirror: mirror });
+    if (mus) setMusic(mus);
+    lamp(lampOn);
+    // 若当前位置正是一句台词，先把台词显示出来，再继续流程
+    var cur = META.script[G.idx];
+    if (cur && typeof cur !== 'string' && cur.text !== undefined && cur.t === undefined && cur.s === undefined) {
+      renderCurrentNode();
+      return;
+    }
+    if (cur && typeof cur !== 'string' && cur.text !== undefined) { renderCurrentNode(); return; }
+    run();
+  }
+
+  /* ---------------- 启动 ---------------- */
+  function startNew() {
+    G.flags = {}; G.mem = []; G.love = 0; G.history = []; G.choiceLog = []; G.idx = 0; G.chapter = '序章';
+    BG.bg = null; BG.sprite = null; BG.music = null; BG.cg = null;
+    cgEl.innerHTML = ''; spriteEl.innerHTML = '';
+    showScreen('game-screen');
+    renderFromScratch();
+  }
+  function showScreen(id) {
+    Array.prototype.forEach.call(document.querySelectorAll('.screen'), function (s) { s.classList.remove('active'); });
+    $(id).classList.add('active');
+    if (id === 'game-screen' && G.rebind) { try { G.rebind(); } catch (e) { } }
+  }
+  function bindHud() {
+    Array.prototype.forEach.call(document.querySelectorAll('.hbtn'), function (b) {
+      b.onclick = function (e) {
+        e.stopPropagation();
+        var a = b.getAttribute('data-act');
+        SOUND.resume();
+        if (a === 'auto') { G.autoOn = !G.autoOn; b.classList.toggle('active', G.autoOn); toast(G.autoOn ? '自动播放：开' : '自动播放：关'); if (G.autoOn) click(); }
+        else if (a === 'skip') { G.skipOn = !G.skipOn; b.classList.toggle('active', G.skipOn); toast(G.skipOn ? '跳过：开（仅已读）' : '跳过：关'); if (G.skipOn) click(); }
+        else if (a === 'log') openLog();
+        else if (a === 'save') openSave('save');
+        else if (a === 'load') openSave('load');
+        else if (a === 'config') openConfig();
+        else if (a === 'title') { autoSave(); showScreen('title-screen'); }
+      };
+    });
+  }
+  function bindInput() {
+    window.__bind = (window.__bind || 0) + 1;
+    document.addEventListener('keydown', function (e) {
+      if ($('modal').classList.contains('on')) { if (e.key === 'Escape') closeModal(); return; }
+      if (!$('game-screen').classList.contains('active')) {
+        if (e.key === ' ' || e.key === 'Enter') { var b = document.querySelector('.t-btn.primary'); if (b && $('title-screen').classList.contains('active')) b.click(); }
+        return;
+      }
+      if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); click(); }
+      else if (e.key === 'a' || e.key === 'A') { G.autoOn = !G.autoOn; toast(G.autoOn ? '自动播放：开' : '自动播放：关'); if (G.autoOn) click(); }
+      else if (e.key === 'h' || e.key === 'H') openLog();
+      else if (e.key === 'Escape') openConfig();
+      else if (e.key === 'Control') G.skipOn = true;
+    });
+    document.addEventListener('keyup', function (e) { if (e.key === 'Control') G.skipOn = false; });
+    // 舞台点击：同时挂在 game-screen 与 document 上，双保险；用 rAF 做重复触发保护
+    function stageClick(e) {
+      if (!document.getElementById('game-screen').classList.contains('active')) return;
+      if (e.target && e.target.classList && e.target.classList.contains('hbtn')) return;
+      if (choiceEl.classList.contains('on')) return;
+      var now = Date.now();
+      if (now - (G._lastClickAt || 0) < 30) return;   // 两个监听别重复触发
+      G._lastClickAt = now;
+      click();
+    }
+    document.getElementById('game-screen').addEventListener('click', stageClick);
+    document.addEventListener('click', stageClick);
+    document.getElementById('choice-layer').addEventListener('click', function (e) { e.stopPropagation(); });
+    G.rebind = function () {
+      var gs = document.getElementById('game-screen');
+      gs.removeEventListener('click', stageClick);
+      gs.addEventListener('click', stageClick);
+      document.removeEventListener('click', stageClick);
+      document.addEventListener('click', stageClick);
+    };
+  }
+  function bindTitle() {
+    Array.prototype.forEach.call(document.querySelectorAll('[data-act]'), function (b) {
+      if (b.classList.contains('hbtn')) return;
+      var a = b.getAttribute('data-act');
+      if (a === 'start') b.onclick = function () { SOUND.init(); SOUND.resume(); SOUND.sfx('select'); showScreen('name-screen'); $('name-input').focus(); };
+      else if (a === 'continue') b.onclick = function () {
+        SOUND.init(); SOUND.resume();
+        var s = lastSave();
+        if (!s) { toast('还没有任何存档'); return; }
+        showScreen('game-screen');
+        if (s.name) G.name = s.name;
+        applySnapshot(s);
+        toast('继续收听 · ' + s.chapter);
+      };
+      else if (a === 'gallery') b.onclick = function () { SOUND.init(); SOUND.sfx('select'); openGallery(); };
+      else if (a === 'music') b.onclick = function () { SOUND.init(); SOUND.resume(); SOUND.sfx('select'); openMusic(); };
+      else if (a === 'help') b.onclick = function () { SOUND.sfx('select'); openHelp(); };
+    });
+    $('name-ok').onclick = function () {
+      var v = ($('name-input').value || '').trim();
+      G.name = v || '江知远';
+      SOUND.sfx('select'); startNew();
+    };
+    $('name-default').onclick = function () { $('name-input').value = '江知远'; $('name-ok').click(); };
+    $('name-input').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('name-ok').click(); });
+  }
+  function bootScript(meta) {
+    META = meta;
+    bgEl = $('bg-layer'); spriteEl = $('sprite-layer'); cgEl = $('cg-layer');
+    textEl = $('text'); spkEl = $('speaker'); nextEl = $('nextmark');
+    choiceEl = $('choice-layer'); chapterEl = $('chapter-card'); endingEl = $('ending-card');
+    toastEl = $('toast');
+    cgEl.style.display = 'none';
+    // 读取进度
+    G.cgs = load(VERSION + '_cg') || {};
+    G.mus = load(VERSION + '_mus') || {};
+    var cfg = load(VERSION + '_cfg'); if (cfg) for (var k in cfg) G.settings[k] = cfg[k];
+    // 标题背景
+    $('title-art').innerHTML = ARTWORK.get('title');
+    bindHud(); bindInput(); bindTitle();
+    // 调试：?jump=节点序号  直接跳到某句台词（供截图/自测）
+    var q = /[?&]jump=(\d+)/.exec(location.search);
+    if (q) {
+      var n = parseInt(q[1], 10);
+      G.flags = {}; G.mem = []; G.love = 0; G.history = [];
+      var fq = /[?&]flags=([a-z_,0-9]+)/.exec(location.search);
+      if (fq) fq[1].split(',').forEach(function (k) { if (k) G.flags[k] = 1; });
+      var lq = /[?&]love=(\d+)/.exec(location.search);
+      if (lq) G.love = parseInt(lq[1], 10);
+      var nq = /[?&]player=([^&]+)/.exec(location.search);
+      if (nq) G.name = decodeURIComponent(nq[1]);
+      G.idx = n; G.chapter = '调试';
+      showScreen('game-screen');
+      renderFromScratch();
+      // ?local=1 时禁用「继续收听」，避免自动存档覆盖调试状态
+      if (/[?&]local=1/.test(location.search)) {
+        var cb = document.querySelector('[data-act="continue"]');
+        if (cb) cb.style.display = 'none';
+      }
+    }
+    // 空格推进已绑定
+    document.addEventListener('mousedown', function () { SOUND.resume(); }, { once: true });
+  }
+  return { boot: bootScript, get state() { return G; }, showScreen: showScreen };
+})();
+
+
+/* ---- 剧本装配与启动 ---- */
+var SCRIPT = [].concat(SCRIPT_0, SCRIPT_1, SCRIPT_2);
+window.__S = SCRIPT;
+Game.boot({ script: SCRIPT, title: META_TITLE, musiclist: META_MUSIC, cglist: META_CG, version: '1.0' });
+
+</script>
+</body>
+</html>
